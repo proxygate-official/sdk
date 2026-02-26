@@ -1,7 +1,7 @@
 {
   "name": "@proxygate/sdk",
-  "version": "0.1.0",
-  "description": "ProxyGate SDK — auth helper for agent-to-gateway authentication",
+  "version": "0.2.0",
+  "description": "ProxyGate SDK — typed client for the ProxyGate API marketplace",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
