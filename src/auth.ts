@@ -12,12 +12,12 @@ import type { SignRequestOptions, AuthHeaders } from './types';
  * import { signRequest } from '@proxygate/sdk';
  *
  * const headers = await signRequest({
- *   gatewayUrl: 'https://gateway.proxygate.io',
+ *   gatewayUrl: 'https://gateway.proxygate.ai',
  *   walletAddress: 'YourSolanaPublicKey...',
  *   secretKey: yourKeypair.secretKey,
  * });
  *
- * const res = await fetch('https://gateway.proxygate.io/v1/balance', {
+ * const res = await fetch('https://gateway.proxygate.ai/v1/balance', {
  *   headers,
  * });
  * ```
