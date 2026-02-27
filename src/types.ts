@@ -333,14 +333,26 @@ export interface VaultDepositResponse {
   currency: string;
 }
 
-/** POST /v1/withdraw response */
-export interface VaultWithdrawResponse {
+/** POST /v1/withdraw gateway response (intermediate states). */
+export interface VaultWithdrawGatewayResponse {
   status: 'ready' | 'cooldown_started' | 'cooldown_active';
   message: string;
   cooldown_ms?: number;
   unsettled_calls?: number;
   cooldown_remaining_ms?: number;
 }
+
+/** Full SDK withdraw result (returned after cooldown + on-chain TX). */
+export interface VaultWithdrawCompleteResponse {
+  status: 'complete';
+  tx_signature: string;
+  amount_withdrawn: number;
+}
+
+/** POST /v1/withdraw response — union of gateway intermediate and SDK complete states. */
+export type VaultWithdrawResponse =
+  | VaultWithdrawGatewayResponse
+  | VaultWithdrawCompleteResponse;
 
 /** Signed receipt from a proxy call (returned in x-receipt header). */
 export interface VaultReceipt {

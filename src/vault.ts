@@ -6,6 +6,7 @@ import type {
   VaultDepositResponse,
   VaultDepositOptions,
   VaultWithdrawOptions,
+  VaultWithdrawCompleteResponse,
   VaultReceipt,
   ReceiptVerificationResult,
 } from './types';
@@ -268,7 +269,7 @@ export class VaultClient {
    */
   async withdraw(
     opts?: VaultWithdrawOptions,
-  ): Promise<{ tx_signature: string; amount_withdrawn: number; status: string }> {
+  ): Promise<VaultWithdrawCompleteResponse> {
     const solanaWeb3 = await requireSolanaWeb3();
     const splToken = await requireSplToken();
 
