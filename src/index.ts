@@ -22,8 +22,6 @@ export type {
   UsageResponse,
   UsageEntry,
   UsageSummary,
-  DepositResponse,
-  WithdrawResponse,
   RateResponse,
   ApisResponse,
   ServicesResponse,

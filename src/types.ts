@@ -100,23 +100,6 @@ export interface UsageResponse {
   offset: number;
 }
 
-/** POST /v1/deposit */
-export interface DepositResponse {
-  balance: number;
-  deposited: number;
-  currency: string;
-  usdc_equivalent: string;
-}
-
-/** POST /v1/withdraw */
-export interface WithdrawResponse {
-  tx_signature: string;
-  amount_withdrawn: number;
-  remaining_balance: number;
-  currency: string;
-  usdc_withdrawn: string;
-}
-
 /** POST /v1/rate */
 export interface RateResponse {
   status: string;
@@ -312,8 +295,8 @@ export interface ApisQueryOptions {
   limit?: number;
   /** Filter by category slug(s), comma-separated for multiple. */
   category?: string;
-  /** Sort order: price_asc, price_desc, popular, rating, newest. */
-  sort?: 'price_asc' | 'price_desc' | 'popular' | 'rating' | 'newest';
+  /** Sort order: price_asc, price_desc, popular, newest. */
+  sort?: 'price_asc' | 'price_desc' | 'popular' | 'newest';
   /** Text search query. */
   q?: string;
 }

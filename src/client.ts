@@ -13,8 +13,6 @@ import type {
   BalanceResponse,
   PricingResponse,
   UsageResponse,
-  DepositResponse,
-  WithdrawResponse,
   RateResponse,
   ApisResponse,
   ServicesResponse,
@@ -346,23 +344,6 @@ export class ProxyGateClient {
   async usage(opts?: UsageQueryOptions): Promise<UsageResponse> {
     return this._authenticatedRequest<UsageResponse>('GET', '/v1/usage', {
       query: buildQuery(opts),
-    });
-  }
-
-  /**
-   * Deposit credits via Solana USDC payment.
-   * Pass transaction verification headers via `paymentHeaders` if needed.
-   */
-  async deposit(paymentHeaders?: Record<string, string>): Promise<DepositResponse> {
-    return this._authenticatedRequest<DepositResponse>('POST', '/v1/deposit', {
-      headers: paymentHeaders,
-    });
-  }
-
-  /** Withdraw credits back to USDC. */
-  async withdraw(opts: WithdrawOptions): Promise<WithdrawResponse> {
-    return this._authenticatedRequest<WithdrawResponse>('POST', '/v1/withdraw', {
-      body: opts,
     });
   }
 
