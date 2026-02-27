@@ -281,8 +281,8 @@ export class ProxyGateClient {
   }
 
   /**
-   * Deposit credits via x402 payment.
-   * Pass x402 payment headers via `paymentHeaders` if needed.
+   * Deposit credits via Solana USDC payment.
+   * Pass transaction verification headers via `paymentHeaders` if needed.
    */
   async deposit(paymentHeaders?: Record<string, string>): Promise<DepositResponse> {
     return this._authenticatedRequest<DepositResponse>('POST', '/v1/deposit', {
