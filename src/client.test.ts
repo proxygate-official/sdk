@@ -411,7 +411,7 @@ describe('ProxyGateClient', () => {
 
     describe('apis()', () => {
       it('calls GET /v1/apis without auth (public endpoint)', async () => {
-        const apisData = { listings: [], cursor: null, has_more: false, total: 0 };
+        const apisData = { data: [], cursor: null, has_more: false };
         const mockFetch = createMockFetch(
           new Map([['/v1/apis', { status: 200, body: apisData }]]),
         );
@@ -432,7 +432,7 @@ describe('ProxyGateClient', () => {
 
       it('passes category, sort, q query params', async () => {
         const mockFetch = createMockFetch(
-          new Map([['/v1/apis', { status: 200, body: { listings: [], cursor: null, has_more: false, total: 0 } }]]),
+          new Map([['/v1/apis', { status: 200, body: { data: [], cursor: null, has_more: false } }]]),
         );
         vi.stubGlobal('fetch', mockFetch);
 

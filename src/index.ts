@@ -26,7 +26,6 @@ export type {
   WithdrawResponse,
   RateResponse,
   ApisResponse,
-  ApiListing,
   ServicesResponse,
   ServiceStats,
   SellerProfileResponse,
