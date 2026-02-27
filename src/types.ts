@@ -234,31 +234,69 @@ export interface SSEEvent {
 }
 
 // ---------------------------------------------------------------------------
-// Proxy chain types
+// Proxy options (replaces ProxyChain)
 // ---------------------------------------------------------------------------
 
-/** Options for proxy chain terminal HTTP methods. */
-export interface RequestOptions {
+/** Options for client.proxy() method. */
+export interface ProxyOptions {
+  /** HTTP method (default: POST). */
+  method?: string;
+  /** Additional headers to send with the request. */
   headers?: Record<string, string>;
+  /** Query parameters to append to the URL. */
   query?: Record<string, string>;
+  /** AbortSignal for request cancellation. */
   signal?: AbortSignal;
+  /** Number of retries on 5xx or network errors (default: 0). */
+  retries?: number;
 }
 
-/** Terminal HTTP methods available on a proxy chain node. */
-export interface TerminalMethods {
-  get(opts?: RequestOptions): Promise<Response>;
-  post(body: unknown, opts?: RequestOptions): Promise<Response>;
-  create(body: unknown, opts?: RequestOptions): Promise<Response>;
-  put(body: unknown, opts?: RequestOptions): Promise<Response>;
-  patch(body: unknown, opts?: RequestOptions): Promise<Response>;
-  delete(opts?: RequestOptions): Promise<Response>;
-  stream(body: unknown, opts?: RequestOptions): AsyncGenerator<SSEEvent>;
+// ---------------------------------------------------------------------------
+// Category types (discovery)
+// ---------------------------------------------------------------------------
+
+/** A subcategory within a top-level category. */
+export interface CategorySubcategory {
+  slug: string;
+  name: string;
+  icon: string;
+  listing_count: number;
 }
 
-/** Recursive proxy chain: each property access extends the URL path. */
-export type ProxyChain = TerminalMethods & {
-  [key: string]: ProxyChain;
-};
+/** A top-level category with inline subcategories. */
+export interface CategoryEntry {
+  slug: string;
+  name: string;
+  icon: string;
+  listing_count: number;
+  subcategories: CategorySubcategory[];
+}
+
+/** GET /v1/categories response. */
+export interface CategoriesResponse {
+  categories: CategoryEntry[];
+}
+
+/** Single API listing detail (returned by api()). */
+export interface ApiListingDetail {
+  listing_id: string;
+  seller_wallet: string;
+  service: string;
+  service_name: string;
+  auth_pattern: string;
+  pricing_unit: string;
+  price_per_request_usdc: number | null;
+  price_per_input_token_usdc: number | null;
+  price_per_output_token_usdc: number | null;
+  available_rpm: number;
+  uptime_percent: number;
+  avg_latency_ms: number;
+  trust_score: number;
+  badges: string[];
+  is_available: boolean;
+  member_since: string;
+  category_slugs?: string[];
+}
 
 // ---------------------------------------------------------------------------
 // Query option types for filtered endpoints
@@ -288,6 +326,12 @@ export interface ApisQueryOptions {
   max_latency?: number;
   cursor?: string;
   limit?: number;
+  /** Filter by category slug(s), comma-separated for multiple. */
+  category?: string;
+  /** Sort order: price_asc, price_desc, popular, rating, newest. */
+  sort?: 'price_asc' | 'price_desc' | 'popular' | 'rating' | 'newest';
+  /** Text search query. */
+  q?: string;
 }
 
 /** GET /v1/settlement/history query options. */
