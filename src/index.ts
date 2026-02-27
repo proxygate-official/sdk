@@ -1,6 +1,9 @@
 // Client
 export { ProxyGateClient, ProxyGateError } from './client';
 
+// Vault
+export { VaultClient, VAULT_CONSTANTS } from './vault';
+
 // Auth (existing)
 export { signRequest } from './auth';
 
@@ -41,4 +44,12 @@ export type {
   SettlementsQueryOptions,
   WithdrawOptions,
   RateOptions,
+  VaultBalanceResponse,
+  VaultDepositResponse,
+  VaultWithdrawResponse,
+  VaultReceipt,
+  VaultDepositOptions,
+  VaultWithdrawOptions,
+  ReceiptVerificationResult,
+  VaultDelegate,
 } from './types';

@@ -1,5 +1,47 @@
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
+const ALPHABET_MAP = new Map<string, number>();
+for (let i = 0; i < ALPHABET.length; i++) {
+  ALPHABET_MAP.set(ALPHABET[i], i);
+}
+
+/**
+ * Decode a base58 string to a byte array (Solana/Bitcoin alphabet).
+ *
+ * Used to convert Solana address strings back to 32-byte public keys.
+ */
+export function decodeBase58(str: string): Uint8Array {
+  // Count leading '1' characters (they map to 0x00 bytes)
+  let leadingOnes = 0;
+  for (let i = 0; i < str.length && str[i] === '1'; i++) {
+    leadingOnes++;
+  }
+
+  // Convert base58 string to BigInt
+  let num = BigInt(0);
+  for (let i = 0; i < str.length; i++) {
+    const charValue = ALPHABET_MAP.get(str[i]);
+    if (charValue === undefined) {
+      throw new Error(`Invalid base58 character: ${str[i]}`);
+    }
+    num = num * BigInt(58) + BigInt(charValue);
+  }
+
+  // Convert BigInt to byte array
+  const bytes: number[] = [];
+  while (num > BigInt(0)) {
+    bytes.unshift(Number(num % BigInt(256)));
+    num = num / BigInt(256);
+  }
+
+  // Prepend zero bytes for leading '1' characters
+  for (let i = 0; i < leadingOnes; i++) {
+    bytes.unshift(0);
+  }
+
+  return Uint8Array.from(bytes);
+}
+
 /**
  * Encode a byte array as a base58 string (Solana/Bitcoin alphabet).
  *

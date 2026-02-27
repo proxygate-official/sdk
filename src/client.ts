@@ -6,10 +6,12 @@ import { NoncePool } from './nonce-pool';
 import { createServiceChain } from './proxy-chain';
 import { parseSSE } from './stream';
 import { encodeBase58 } from './base58';
+import { VaultClient } from './vault';
 import type {
   ProxyGateClientOptions,
   CreateClientOptions,
   AuthHeaders,
+  VaultDelegate,
   BalanceResponse,
   PricingResponse,
   UsageResponse,
@@ -217,6 +219,42 @@ export class ProxyGateClient {
    */
   get proxy(): ProxyChain {
     return createServiceChain(this);
+  }
+
+  // -------------------------------------------------------------------------
+  // Vault namespace
+  // -------------------------------------------------------------------------
+
+  private _vault?: VaultClient;
+
+  /**
+   * Vault namespace for non-custodial vault operations.
+   *
+   * @example
+   * ```ts
+   * const balance = await client.vault.balance();
+   * const deposit = await client.vault.deposit({ amount: 1_000_000 });
+   * const results = client.vault.verifyReceipts(receipts);
+   * ```
+   */
+  get vault(): VaultClient {
+    if (!this._vault) {
+      this._vault = new VaultClient(this._vaultDelegate());
+    }
+    return this._vault;
+  }
+
+  /**
+   * Expose internal state needed by VaultClient via a delegate object.
+   * @internal
+   */
+  _vaultDelegate(): VaultDelegate {
+    return {
+      authenticatedRequest: this._authenticatedRequest.bind(this),
+      secretKey: this._secretKey,
+      walletAddress: this.walletAddress,
+      gatewayUrl: this.gatewayUrl,
+    };
   }
 
   // -------------------------------------------------------------------------

@@ -311,3 +311,87 @@ export interface RateOptions {
   request_id: string;
   is_positive: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Vault types (v4.0 non-custodial vault)
+// ---------------------------------------------------------------------------
+
+/** GET /v1/balance (vault-backed) */
+export interface VaultBalanceResponse {
+  balance: number;
+  pending_settlement: number;
+  available: number;
+  in_cooldown: boolean;
+  currency: string;
+}
+
+/** POST /v1/deposit/confirm response */
+export interface VaultDepositResponse {
+  balance: number;
+  deposited: number;
+  tx_signature: string;
+  currency: string;
+}
+
+/** POST /v1/withdraw response */
+export interface VaultWithdrawResponse {
+  status: 'ready' | 'cooldown_started' | 'cooldown_active';
+  message: string;
+  cooldown_ms?: number;
+  unsettled_calls?: number;
+  cooldown_remaining_ms?: number;
+}
+
+/** Signed receipt from a proxy call (returned in x-receipt header). */
+export interface VaultReceipt {
+  request_id: string;
+  buyer: string;
+  seller: string;
+  amount: number;
+  timestamp: number;
+  signature: string;
+}
+
+/** Options for vault deposit. */
+export interface VaultDepositOptions {
+  /** Amount in USDC base units (e.g., 1000000 = 1 USDC with 6 decimals). */
+  amount: number;
+  /** Optional: custom Solana RPC URL (overrides default devnet). */
+  rpcUrl?: string;
+}
+
+/** Options for vault withdraw. */
+export interface VaultWithdrawOptions {
+  /** Amount in USDC base units to withdraw. If omitted, withdraw all. */
+  amount?: number;
+  /** Optional: custom Solana RPC URL. */
+  rpcUrl?: string;
+  /** Poll interval in ms for cooldown wait (default 5000). */
+  pollIntervalMs?: number;
+  /** Max wait time in ms before giving up (default 120000 = 2 minutes). */
+  maxWaitMs?: number;
+}
+
+/** Receipt verification result. */
+export interface ReceiptVerificationResult {
+  receipt: VaultReceipt;
+  valid: boolean;
+  reason?: string;
+}
+
+/** Delegate object exposing ProxyGateClient internals to VaultClient. */
+export interface VaultDelegate {
+  authenticatedRequest: <T>(
+    method: string,
+    path: string,
+    opts?: {
+      body?: unknown;
+      query?: Record<string, string>;
+      headers?: Record<string, string>;
+      signal?: AbortSignal;
+    },
+  ) => Promise<T>;
+  secretKey: Uint8Array;
+  walletAddress: string;
+  gatewayUrl: string;
+}
