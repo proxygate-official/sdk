@@ -123,28 +123,12 @@ export interface RateResponse {
   message: string;
 }
 
-/** Single API listing entry. */
-export interface ApiListing {
-  id: string;
-  service: string;
-  seller_id: string;
-  pricing_model: string;
-  price_per_request?: number;
-  input_price_per_token?: number;
-  output_price_per_token?: number;
-  auth_pattern: string;
-  status: string;
-  uptime_pct?: number;
-  latency_ms?: number;
-  capacity_available?: number;
-}
-
-/** GET /v1/apis */
+/** GET /v1/apis — matches gateway CursorPage<CatalogListing> response shape. */
 export interface ApisResponse {
-  listings: ApiListing[];
+  data: ApiListingDetail[];
   cursor: string | null;
   has_more: boolean;
-  total: number;
+  filters_applied?: Record<string, unknown>;
 }
 
 /** Aggregated service stats entry. */
