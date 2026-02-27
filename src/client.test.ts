@@ -110,13 +110,11 @@ describe('ProxyGateClient', () => {
 
   describe('create()', () => {
     beforeEach(() => {
-      // All create tests need nonce-capable fetch for potential client operations
       const mockFetch = createMockFetch(new Map());
       vi.stubGlobal('fetch', mockFetch);
     });
 
     it('creates client from valid keypair file', async () => {
-      const { readFile } = await import('node:fs/promises');
       vi.mock('node:fs/promises', () => ({
         readFile: vi.fn(),
       }));
@@ -133,7 +131,6 @@ describe('ProxyGateClient', () => {
 
       expect(client).toBeInstanceOf(ProxyGateClient);
       expect(client.gatewayUrl).toBe(testGatewayUrl);
-      // walletAddress should be the base58-encoded public key
       expect(client.walletAddress.length).toBeGreaterThan(0);
     });
 
@@ -204,7 +201,6 @@ describe('ProxyGateClient', () => {
 
       const calledPath = vi.mocked(mockedReadFile).mock.calls[0][0] as string;
       expect(calledPath).not.toContain('~');
-      // Should be resolved to home directory
       expect(calledPath).toContain('test-keypair.json');
     });
   });
@@ -232,7 +228,6 @@ describe('ProxyGateClient', () => {
         const result = await client.balance();
 
         expect(result).toEqual(balanceData);
-        // Verify auth headers were sent (second call, first is nonce)
         const balanceCall = mockFetch.mock.calls.find(
           (call: unknown[]) => (call[0] as string).includes('/v1/balance'),
         );
@@ -262,7 +257,6 @@ describe('ProxyGateClient', () => {
         const result = await client.pricing();
 
         expect(result).toEqual(pricingData);
-        // Verify no auth headers (public endpoint)
         const pricingCall = mockFetch.mock.calls.find(
           (call: unknown[]) => (call[0] as string).includes('/v1/pricing'),
         );
@@ -416,7 +410,7 @@ describe('ProxyGateClient', () => {
     });
 
     describe('apis()', () => {
-      it('returns apis response with auth headers', async () => {
+      it('calls GET /v1/apis without auth (public endpoint)', async () => {
         const apisData = { listings: [], cursor: null, has_more: false, total: 0 };
         const mockFetch = createMockFetch(
           new Map([['/v1/apis', { status: 200, body: apisData }]]),
@@ -427,28 +421,36 @@ describe('ProxyGateClient', () => {
         const result = await client.apis();
 
         expect(result).toEqual(apisData);
+        // Verify no auth headers (now public)
+        const apisCall = mockFetch.mock.calls.find(
+          (call: unknown[]) => (call[0] as string).includes('/v1/apis'),
+        );
+        expect(apisCall).toBeTruthy();
+        const init = apisCall![1] as RequestInit;
+        expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
       });
 
-      it('passes filter options as query params', async () => {
+      it('passes category, sort, q query params', async () => {
         const mockFetch = createMockFetch(
           new Map([['/v1/apis', { status: 200, body: { listings: [], cursor: null, has_more: false, total: 0 } }]]),
         );
         vi.stubGlobal('fetch', mockFetch);
 
         const client = createClient();
-        await client.apis({ service: 'openai', limit: 5 });
+        await client.apis({ category: 'ai-ml', sort: 'price_asc', q: 'openai' });
 
         const apisCall = mockFetch.mock.calls.find(
           (call: unknown[]) => (call[0] as string).includes('/v1/apis'),
         );
         const calledUrl = apisCall![0] as string;
-        expect(calledUrl).toContain('service=openai');
-        expect(calledUrl).toContain('limit=5');
+        expect(calledUrl).toContain('category=ai-ml');
+        expect(calledUrl).toContain('sort=price_asc');
+        expect(calledUrl).toContain('q=openai');
       });
     });
 
     describe('services()', () => {
-      it('returns services response', async () => {
+      it('calls GET /v1/services without auth (public endpoint)', async () => {
         const servicesData = { services: [] };
         const mockFetch = createMockFetch(
           new Map([['/v1/services', { status: 200, body: servicesData }]]),
@@ -459,6 +461,13 @@ describe('ProxyGateClient', () => {
         const result = await client.services();
 
         expect(result).toEqual(servicesData);
+        // Verify no auth headers (now public)
+        const servicesCall = mockFetch.mock.calls.find(
+          (call: unknown[]) => (call[0] as string).includes('/v1/services'),
+        );
+        expect(servicesCall).toBeTruthy();
+        const init = servicesCall![1] as RequestInit;
+        expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
       });
     });
 
@@ -482,14 +491,12 @@ describe('ProxyGateClient', () => {
         const result = await client.sellerProfile('SellerWallet');
 
         expect(result).toEqual(profileData);
-        // Verify it's a public request (no auth headers)
         const profileCall = mockFetch.mock.calls.find(
           (call: unknown[]) => (call[0] as string).includes('/v1/seller/profile/'),
         );
         expect(profileCall).toBeTruthy();
         const init = profileCall![1] as RequestInit;
         expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
-        // Verify wallet is in URL path
         const calledUrl = profileCall![0] as string;
         expect(calledUrl).toContain('/v1/seller/profile/SellerWallet');
       });
@@ -640,171 +647,284 @@ describe('ProxyGateClient', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Proxy chain integration tests
+  // proxy() method tests
   // -------------------------------------------------------------------------
 
-  describe('proxy chain integration', () => {
-    it('builds correct URL from path segments', async () => {
-      let nonceCounter = 0;
-      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes('/v1/nonce')) {
-          return new Response(
-            JSON.stringify({ nonce: `nonce-${++nonceCounter}`, expires_in: 30 }),
-          );
-        }
-        return new Response(JSON.stringify({ choices: [] }));
-      });
+  describe('proxy()', () => {
+    const LISTING_ID = 'listing-uuid-001';
+    const LISTING_DATA = {
+      listing_id: LISTING_ID,
+      seller_wallet: 'Sell...1234',
+      service: 'openai',
+      service_name: 'OpenAI',
+      auth_pattern: 'bearer',
+      pricing_unit: 'per_request',
+      price_per_request_usdc: 0.002,
+      price_per_input_token_usdc: null,
+      price_per_output_token_usdc: null,
+      available_rpm: 100,
+      uptime_percent: 0.99,
+      avg_latency_ms: 150,
+      trust_score: 0.5,
+      badges: [],
+      is_available: true,
+      member_since: '2026-01-01',
+    };
+
+    it('sends POST to /proxy/{service}/{path}?listing={id} with auth headers', async () => {
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+        ['/proxy/', { status: 200, body: { choices: [] } }],
+      ]));
       vi.stubGlobal('fetch', mockFetch);
 
       const client = createClient();
-      await client.proxy.openai.v1.chat.completions.create({ model: 'gpt-4' });
+      const res = await client.proxy(LISTING_ID, '/v1/chat/completions', {
+        model: 'gpt-4',
+      });
 
+      expect(res).toBeInstanceOf(Response);
       const proxyCall = mockFetch.mock.calls.find(
         (call: unknown[]) => (call[0] as string).includes('/proxy/'),
       );
       expect(proxyCall).toBeTruthy();
       const calledUrl = proxyCall![0] as string;
       expect(calledUrl).toContain('/proxy/openai/v1/chat/completions');
+      expect(calledUrl).toContain(`listing=${LISTING_ID}`);
       const init = proxyCall![1] as RequestInit;
       expect(init.method).toBe('POST');
-      expect(JSON.parse(init.body as string)).toEqual({ model: 'gpt-4' });
+      expect((init.headers as Record<string, string>)['x-wallet']).toBe('TestWallet');
+      expect((init.headers as Record<string, string>)['x-nonce']).toBeTruthy();
+      expect((init.headers as Record<string, string>)['content-type']).toBe('application/json');
     });
 
-    it('returns raw Response from proxy requests', async () => {
+    it('caches listing metadata after first api() call', async () => {
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+        ['/proxy/', { status: 200, body: { ok: true } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy(LISTING_ID, '/v1/test', { data: 1 });
+      await client.proxy(LISTING_ID, '/v1/test', { data: 2 });
+
+      // /v1/apis should only be called once (second proxy() uses cache)
+      const apisCalls = mockFetch.mock.calls.filter(
+        (call: unknown[]) => (call[0] as string).includes('/v1/apis'),
+      );
+      expect(apisCalls.length).toBe(1);
+    });
+
+    it('respects options.method override', async () => {
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+        ['/proxy/', { status: 200, body: { models: [] } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy(LISTING_ID, '/v1/models', undefined, { method: 'GET' });
+
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      const init = proxyCall![1] as RequestInit;
+      expect(init.method).toBe('GET');
+    });
+
+    it('includes options.headers and options.query in request', async () => {
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+        ['/proxy/', { status: 200, body: { ok: true } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy(LISTING_ID, '/v1/test', { data: 1 }, {
+        headers: { 'x-custom': 'value' },
+        query: { extra: 'param' },
+      });
+
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      const calledUrl = proxyCall![0] as string;
+      expect(calledUrl).toContain('extra=param');
+      const init = proxyCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['x-custom']).toBe('value');
+    });
+
+    it('retries on 5xx with exponential backoff', async () => {
+      let proxyCallCount = 0;
       let nonceCounter = 0;
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes('/v1/nonce')) {
+        const urlStr = typeof url === 'string' ? url : '';
+        if (urlStr.includes('/v1/nonce')) {
           return new Response(
             JSON.stringify({ nonce: `nonce-${++nonceCounter}`, expires_in: 30 }),
           );
         }
-        return new Response(JSON.stringify({ data: 'upstream' }), { status: 200 });
+        if (urlStr.includes('/v1/apis')) {
+          return new Response(JSON.stringify({ data: [LISTING_DATA] }));
+        }
+        if (urlStr.includes('/proxy/')) {
+          proxyCallCount++;
+          if (proxyCallCount < 3) {
+            return new Response('Server Error', { status: 500 });
+          }
+          return new Response(JSON.stringify({ ok: true }));
+        }
+        return new Response('Not found', { status: 404 });
       });
       vi.stubGlobal('fetch', mockFetch);
 
       const client = createClient();
-      const response = await client.proxy.openai.v1.models.get();
+      const res = await client.proxy(LISTING_ID, '/v1/test', { data: 1 }, { retries: 2 });
 
-      // Proxy methods return raw Response
-      expect(response).toBeInstanceOf(Response);
-      const body = await response.json();
-      expect(body).toEqual({ data: 'upstream' });
+      expect(res.status).toBe(200);
+      expect(proxyCallCount).toBe(3);
     });
 
-    it('returns Response even on proxy error (non-ok status)', async () => {
+    it('does NOT retry on 4xx', async () => {
+      let proxyCallCount = 0;
       let nonceCounter = 0;
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes('/v1/nonce')) {
+        const urlStr = typeof url === 'string' ? url : '';
+        if (urlStr.includes('/v1/nonce')) {
           return new Response(
             JSON.stringify({ nonce: `nonce-${++nonceCounter}`, expires_in: 30 }),
           );
         }
-        return new Response('Upstream error', { status: 500 });
+        if (urlStr.includes('/v1/apis')) {
+          return new Response(JSON.stringify({ data: [LISTING_DATA] }));
+        }
+        if (urlStr.includes('/proxy/')) {
+          proxyCallCount++;
+          return new Response('Bad Request', { status: 400 });
+        }
+        return new Response('Not found', { status: 404 });
       });
       vi.stubGlobal('fetch', mockFetch);
 
       const client = createClient();
-      // proxy.request returns raw Response, does not throw on non-ok
-      const response = await client.proxy.openai.v1.models.get();
-      expect(response.status).toBe(500);
+      const res = await client.proxy(LISTING_ID, '/v1/test', { data: 1 }, { retries: 2 });
+
+      expect(res.status).toBe(400);
+      expect(proxyCallCount).toBe(1);
     });
 
-    it('streams SSE events from proxy', async () => {
-      let nonceCounter = 0;
-      const encoder = new TextEncoder();
-      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes('/v1/nonce')) {
-          return new Response(
-            JSON.stringify({ nonce: `nonce-${++nonceCounter}`, expires_in: 30 }),
-          );
-        }
-        const stream = new ReadableStream({
-          start(controller) {
-            controller.enqueue(encoder.encode('data: {"chunk":1}\n\n'));
-            controller.enqueue(encoder.encode('data: {"chunk":2}\n\n'));
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            controller.close();
-          },
-        });
-        return new Response(stream, {
-          status: 200,
-          headers: { 'content-type': 'text/event-stream' },
-        });
-      });
+    it('returns raw Response object', async () => {
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+        ['/proxy/', { status: 200, body: { result: 'upstream' } }],
+      ]));
       vi.stubGlobal('fetch', mockFetch);
 
       const client = createClient();
-      const events: Array<{ data: string }> = [];
+      const res = await client.proxy(LISTING_ID, '/v1/test', { data: 1 });
 
-      for await (const event of client.proxy.openai.v1.chat.completions.stream({
-        model: 'gpt-4',
-        stream: true,
-      })) {
-        events.push(event);
-      }
-
-      expect(events).toHaveLength(2);
-      expect(events[0].data).toBe('{"chunk":1}');
-      expect(events[1].data).toBe('{"chunk":2}');
+      expect(res).toBeInstanceOf(Response);
+      const body = await res.json();
+      expect(body).toEqual({ result: 'upstream' });
     });
 
-    it('throws ProxyGateError on stream error response', async () => {
-      let nonceCounter = 0;
-      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes('/v1/nonce')) {
-          return new Response(
-            JSON.stringify({ nonce: `nonce-${++nonceCounter}`, expires_in: 30 }),
-          );
-        }
-        return new Response(
-          JSON.stringify({ error: 'rate_limited', message: 'Too many requests' }),
-          { status: 429, headers: { 'content-type': 'application/json' } },
-        );
-      });
+    it('omits content-type header when body is undefined', async () => {
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+        ['/proxy/', { status: 200, body: { models: [] } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy(LISTING_ID, '/v1/models', undefined, { method: 'GET' });
+
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      const init = proxyCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['content-type']).toBeUndefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // categories() method tests
+  // -------------------------------------------------------------------------
+
+  describe('categories()', () => {
+    it('calls GET /v1/categories without auth', async () => {
+      const categoriesData = { categories: [{ slug: 'ai-ml', name: 'AI', icon: 'Brain', listing_count: 5, subcategories: [] }] };
+      const mockFetch = createMockFetch(
+        new Map([['/v1/categories', { status: 200, body: categoriesData }]]),
+      );
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      const result = await client.categories();
+
+      expect(result).toEqual(categoriesData);
+      const catCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/v1/categories'),
+      );
+      expect(catCall).toBeTruthy();
+      const init = catCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // api() method tests
+  // -------------------------------------------------------------------------
+
+  describe('api()', () => {
+    const LISTING_DATA = {
+      listing_id: 'listing-001',
+      seller_wallet: 'Sell...1234',
+      service: 'openai',
+      service_name: 'OpenAI',
+      auth_pattern: 'bearer',
+      pricing_unit: 'per_request',
+      price_per_request_usdc: 0.002,
+      price_per_input_token_usdc: null,
+      price_per_output_token_usdc: null,
+      available_rpm: 100,
+      uptime_percent: 0.99,
+      avg_latency_ms: 150,
+      trust_score: 0.5,
+      badges: [],
+      is_available: true,
+      member_since: '2026-01-01',
+    };
+
+    it('returns listing detail matching given ID', async () => {
+      const mockFetch = createMockFetch(
+        new Map([['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }]]),
+      );
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      const result = await client.api('listing-001');
+
+      expect(result.listing_id).toBe('listing-001');
+      expect(result.service).toBe('openai');
+    });
+
+    it('throws ProxyGateError 404 when listing not found', async () => {
+      const mockFetch = createMockFetch(
+        new Map([['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }]]),
+      );
       vi.stubGlobal('fetch', mockFetch);
 
       const client = createClient();
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for await (const _event of client.proxy.openai.v1.chat.completions.stream({
-          model: 'gpt-4',
-        })) {
-          expect.fail('Should have thrown');
-        }
+        await client.api('nonexistent');
         expect.fail('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(ProxyGateError);
-        expect((err as ProxyGateError).code).toBe('rate_limited');
-      }
-    });
-
-    it('throws ProxyGateError on non-SSE content type in stream', async () => {
-      let nonceCounter = 0;
-      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes('/v1/nonce')) {
-          return new Response(
-            JSON.stringify({ nonce: `nonce-${++nonceCounter}`, expires_in: 30 }),
-          );
-        }
-        return new Response(JSON.stringify({ result: 'not a stream' }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        });
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
-      const client = createClient();
-
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for await (const _event of client.proxy.openai.v1.chat.completions.stream({})) {
-          expect.fail('Should have thrown');
-        }
-        expect.fail('Should have thrown');
-      } catch (err) {
-        expect(err).toBeInstanceOf(ProxyGateError);
-        expect((err as ProxyGateError).code).toBe('invalid_content_type');
+        const pge = err as ProxyGateError;
+        expect(pge.code).toBe('listing_not_found');
+        expect(pge.statusCode).toBe(404);
       }
     });
   });
@@ -819,7 +939,6 @@ describe('ProxyGateClient', () => {
       const mockFetch = createMockFetch(
         new Map([
           ['/v1/balance', { status: 200, body: balanceData }],
-          ['/v1/services', { status: 200, body: { services: [] } }],
         ]),
       );
       vi.stubGlobal('fetch', mockFetch);
@@ -830,14 +949,13 @@ describe('ProxyGateClient', () => {
       await client.balance();
       // Second request should use pre-fetched nonce from pool (after background refill)
       await new Promise((r) => setTimeout(r, 50));
-      await client.services();
+      await client.balance();
 
       // Count nonce fetches
       const nonceCalls = mockFetch.mock.calls.filter(
         (call: unknown[]) => (call[0] as string).includes('/v1/nonce'),
       );
       // Should have fetched nonces, but potentially fewer than total requests
-      // due to pool pre-fetching
       expect(nonceCalls.length).toBeGreaterThanOrEqual(2);
     });
   });

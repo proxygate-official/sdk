@@ -3,8 +3,6 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { NoncePool } from './nonce-pool';
-import { createServiceChain } from './proxy-chain';
-import { parseSSE } from './stream';
 import { encodeBase58 } from './base58';
 import { VaultClient } from './vault';
 import type {
@@ -28,10 +26,10 @@ import type {
   SettlementsQueryOptions,
   WithdrawOptions,
   RateOptions,
-  RequestOptions,
-  SSEEvent,
   GatewayError,
-  ProxyChain,
+  ProxyOptions,
+  CategoriesResponse,
+  ApiListingDetail,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -106,7 +104,7 @@ function buildQuery<T extends object>(
  *
  * Provides methods for all v1 gateway endpoints (balance, pricing, usage,
  * deposit, withdraw, rate, apis, services, seller profiles, settlements)
- * and a fluent `proxy` property for transparent API proxying.
+ * and a listing-centric `proxy()` method for transparent API proxying.
  *
  * @example
  * ```ts
@@ -128,11 +126,12 @@ function buildQuery<T extends object>(
  * // Use v1 endpoints
  * const balance = await client.balance();
  *
- * // Use proxy chain
- * const res = await client.proxy.openai.v1.chat.completions.create({
+ * // Proxy through a specific listing
+ * const res = await client.proxy('listing-uuid', '/v1/chat/completions', {
  *   model: 'gpt-4',
  *   messages: [{ role: 'user', content: 'Hello' }],
  * });
+ * const data = await res.json();
  * ```
  */
 export class ProxyGateClient {
@@ -197,28 +196,98 @@ export class ProxyGateClient {
   }
 
   // -------------------------------------------------------------------------
-  // Proxy chain getter
+  // Listing metadata cache
+  // -------------------------------------------------------------------------
+
+  private _listingCache = new Map<string, { service: string }>();
+
+  // -------------------------------------------------------------------------
+  // Proxy method (listing-centric)
   // -------------------------------------------------------------------------
 
   /**
-   * Fluent proxy chain for upstream API access.
+   * Send an authenticated proxy request to a specific listing.
+   * Resolves the service slug from listing metadata (cached after first call).
+   *
+   * @param listingId - The listing UUID to proxy through
+   * @param path - The upstream API path (e.g., '/v1/chat/completions')
+   * @param body - Request body (JSON-serializable). Omit for GET requests.
+   * @param options - Method, headers, query params, retries, signal
+   * @returns Raw Response object (call .json() or use .body for streaming)
    *
    * @example
    * ```ts
-   * // GET /proxy/openai/v1/models
-   * await client.proxy.openai.v1.models.get();
-   *
-   * // POST /proxy/openai/v1/chat/completions (streaming)
-   * for await (const event of client.proxy.openai.v1.chat.completions.stream({
+   * const res = await client.proxy('listing-uuid', '/v1/chat/completions', {
    *   model: 'gpt-4',
    *   messages: [{ role: 'user', content: 'Hello' }],
-   * })) {
-   *   console.log(event.data);
-   * }
+   * });
+   * const data = await res.json();
    * ```
    */
-  get proxy(): ProxyChain {
-    return createServiceChain(this);
+  async proxy(
+    listingId: string,
+    path: string,
+    body?: unknown,
+    options?: ProxyOptions,
+  ): Promise<Response> {
+    // Resolve service slug from cache or fetch listing details
+    let meta = this._listingCache.get(listingId);
+    if (!meta) {
+      const listing = await this.api(listingId);
+      meta = { service: listing.service };
+      this._listingCache.set(listingId, meta);
+    }
+
+    const method = options?.method ?? 'POST';
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const fullPath = `/proxy/${meta.service}${normalizedPath}`;
+    const query: Record<string, string> = {
+      listing: listingId,
+      ...(options?.query ?? {}),
+    };
+
+    const maxAttempts = 1 + (options?.retries ?? 0);
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const authHeaders = await this._signWithNonce();
+
+      const headers: Record<string, string> = {
+        ...authHeaders,
+        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+        ...(options?.headers ?? {}),
+      };
+
+      if (attempt > 0) {
+        // Exponential backoff with jitter: 100ms, 200ms, 400ms... max 5s
+        const delay = Math.min(100 * Math.pow(2, attempt - 1), 5000);
+        const jitter = Math.random() * delay * 0.1;
+        await new Promise((r) => setTimeout(r, delay + jitter));
+      }
+
+      try {
+        const url = this._buildUrl(fullPath, query);
+        const response = await fetch(url, {
+          method,
+          headers,
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+          signal: options?.signal,
+        });
+
+        // Only retry on 5xx, not 4xx
+        if (response.status >= 500 && attempt < maxAttempts - 1) {
+          lastError = new Error(`HTTP ${response.status}`);
+          continue;
+        }
+
+        return response;
+      } catch (err) {
+        lastError = err as Error;
+        if (attempt >= maxAttempts - 1) throw lastError;
+      }
+    }
+
+    throw lastError!;
   }
 
   // -------------------------------------------------------------------------
@@ -304,16 +373,48 @@ export class ProxyGateClient {
     });
   }
 
-  /** Browse available API listings with optional filters. */
+  /** Browse available API listings with optional filters. Public endpoint. */
   async apis(opts?: ApisQueryOptions): Promise<ApisResponse> {
-    return this._authenticatedRequest<ApisResponse>('GET', '/v1/apis', {
+    return this._publicRequest<ApisResponse>('GET', '/v1/apis', {
       query: buildQuery(opts),
     });
   }
 
-  /** Get aggregated service stats. */
+  /** Get aggregated service stats. Public endpoint. */
   async services(): Promise<ServicesResponse> {
-    return this._authenticatedRequest<ServicesResponse>('GET', '/v1/services');
+    return this._publicRequest<ServicesResponse>('GET', '/v1/services');
+  }
+
+  /**
+   * Get all categories with listing counts.
+   * Public endpoint (no wallet auth required).
+   */
+  async categories(): Promise<CategoriesResponse> {
+    return this._publicRequest<CategoriesResponse>('GET', '/v1/categories');
+  }
+
+  /**
+   * Get a single listing by ID with full details.
+   * Public endpoint (no wallet auth required).
+   *
+   * Fetches from /v1/apis with limit=100 and filters client-side
+   * by listing_id. Works for current scale (< 100 listings). The result
+   * is cached by proxy() so this only runs once per listing per client lifetime.
+   */
+  async api(listingId: string): Promise<ApiListingDetail> {
+    const result = await this._publicRequest<{ data: ApiListingDetail[] }>(
+      'GET',
+      '/v1/apis',
+      { query: { limit: '100' } },
+    );
+    const listing = result.data.find((l) => l.listing_id === listingId);
+    if (!listing) {
+      throw new ProxyGateError(
+        { error: 'listing_not_found', message: `Listing ${listingId} not found` },
+        404,
+      );
+    }
+    return listing;
   }
 
   /**
@@ -333,87 +434,6 @@ export class ProxyGateClient {
       '/v1/settlement/history',
       { query: buildQuery(opts) },
     );
-  }
-
-  // -------------------------------------------------------------------------
-  // ProxyExecutor interface (used by proxy-chain.ts)
-  // -------------------------------------------------------------------------
-
-  /**
-   * Execute an authenticated proxy request.
-   * Returns the raw Response (upstream formats vary).
-   */
-  async request(
-    method: string,
-    segments: string[],
-    opts?: RequestOptions & { body?: unknown },
-  ): Promise<Response> {
-    const path = `/proxy/${segments.join('/')}`;
-    const url = this._buildUrl(path, opts?.query);
-    const authHeaders = await this._signWithNonce();
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        ...authHeaders,
-        'content-type': 'application/json',
-        ...(opts?.headers ?? {}),
-      },
-      body: opts?.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      signal: opts?.signal,
-    });
-
-    return response;
-  }
-
-  /**
-   * Execute an authenticated streaming proxy request.
-   * Yields SSE events parsed from the response stream.
-   */
-  async *streamRequest(
-    method: string,
-    segments: string[],
-    opts?: RequestOptions & { body?: unknown },
-  ): AsyncGenerator<SSEEvent> {
-    const path = `/proxy/${segments.join('/')}`;
-    const url = this._buildUrl(path, opts?.query);
-    const authHeaders = await this._signWithNonce();
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        ...authHeaders,
-        'content-type': 'application/json',
-        accept: 'text/event-stream',
-        ...(opts?.headers ?? {}),
-      },
-      body: opts?.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      signal: opts?.signal,
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      let gatewayError: GatewayError;
-      try {
-        gatewayError = JSON.parse(body) as GatewayError;
-      } catch {
-        gatewayError = { error: 'stream_error', message: body || `HTTP ${response.status}` };
-      }
-      throw new ProxyGateError(gatewayError, response.status);
-    }
-
-    const contentType = response.headers.get('content-type') ?? '';
-    if (!contentType.includes('text/event-stream')) {
-      throw new ProxyGateError(
-        {
-          error: 'invalid_content_type',
-          message: `Expected text/event-stream but got ${contentType}`,
-        },
-        response.status,
-      );
-    }
-
-    yield* parseSSE(response);
   }
 
   // -------------------------------------------------------------------------
