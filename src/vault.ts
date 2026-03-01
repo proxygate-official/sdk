@@ -17,9 +17,9 @@ import type {
 
 /** Well-known vault program and token addresses (devnet). */
 export const VAULT_CONSTANTS = {
-  PROGRAM_ID: '98YGxLNX668FUferS7DQD69rzRowi6VB8YoBBC63eW9n',
+  PROGRAM_ID: 'EdHt5xXPZugbTqHB6hFK4zRtkWZyLE2Yzb5XDVDkZZK7',
   PLATFORM_PUBKEY: 'JDVpDib6z46KSfsEcwVGuDXeap1a8iGgaqYJdeuokz4q',
-  USDC_MINT_DEVNET: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+  USDC_MINT_DEVNET: 'FED9q6ZxwjiwHtQ3Rc3CJgpFqiME9txNgNbEdLLs3q2H',
   TOKEN_PROGRAM_ID: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   ASSOCIATED_TOKEN_PROGRAM_ID: 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
   SYSTEM_PROGRAM_ID: '11111111111111111111111111111111',
@@ -260,9 +260,10 @@ export class VaultClient {
   /**
    * Withdraw USDC from the buyer's on-chain vault.
    *
-   * Initiates cooldown via gateway, polls until ready, then builds and
-   * submits the on-chain withdraw transaction.
-   * Requires @solana/web3.js and @solana/spl-token as peer dependencies.
+   * Initiates cooldown via gateway, polls until ready, then requests a
+   * platform co-signed withdraw transaction from the gateway, adds the
+   * buyer's signature, and submits to Solana.
+   * Requires @solana/web3.js as a peer dependency.
    *
    * @param opts - Withdraw options (amount, RPC URL, polling config).
    * @returns Withdraw result with TX signature and amount.
@@ -270,18 +271,6 @@ export class VaultClient {
   async withdraw(
     opts?: VaultWithdrawOptions,
   ): Promise<VaultWithdrawCompleteResponse> {
-    const solanaWeb3 = await requireSolanaWeb3();
-    const splToken = await requireSplToken();
-
-    const {
-      Connection,
-      PublicKey,
-      Keypair,
-      Transaction,
-      TransactionInstruction,
-      sendAndConfirmTransaction,
-    } = solanaWeb3;
-
     // Step 1: Initiate cooldown via gateway
     interface WithdrawGatewayResponse {
       status: 'ready' | 'cooldown_started' | 'cooldown_active';
@@ -339,62 +328,37 @@ export class VaultClient {
       throw new Error('Withdraw amount must be greater than zero');
     }
 
-    // Step 4: Build on-chain withdraw transaction
+    // Step 4: Request platform co-signed withdraw TX from gateway
+    interface WithdrawSignResponse {
+      transaction: string;
+      amount: number;
+    }
+
+    const signResponse = await this._delegate.authenticatedRequest<WithdrawSignResponse>(
+      'POST',
+      '/v1/withdraw/sign',
+      { body: { amount: withdrawAmount } },
+    );
+
+    // Step 5: Deserialize TX, add buyer signature, submit to Solana
+    const solanaWeb3 = await requireSolanaWeb3();
+    const { Connection, Keypair, Transaction } = solanaWeb3;
+
     const rpcUrl = opts?.rpcUrl ?? DEFAULT_RPC_URL;
     const connection = new Connection(rpcUrl, 'confirmed');
-
     const buyerKeypair = Keypair.fromSecretKey(this._delegate.secretKey);
-    const buyerPubkey = buyerKeypair.publicKey;
-    const programId = new PublicKey(VAULT_CONSTANTS.PROGRAM_ID);
-    const usdcMint = new PublicKey(VAULT_CONSTANTS.USDC_MINT_DEVNET);
-    const tokenProgramId = new PublicKey(VAULT_CONSTANTS.TOKEN_PROGRAM_ID);
 
-    // Derive PDAs
-    const [vaultPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('vault'), buyerPubkey.toBuffer()],
-      programId,
-    );
-    const [vaultTokenPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('vault_token'), buyerPubkey.toBuffer()],
-      programId,
-    );
+    const txBuffer = base64ToBytes(signResponse.transaction);
+    const tx = Transaction.from(Buffer.from(txBuffer));
+    tx.partialSign(buyerKeypair);
 
-    // Buyer's USDC ATA
-    const buyerAta = splToken.getAssociatedTokenAddressSync(
-      usdcMint,
-      buyerPubkey,
-    );
-
-    // Build withdraw instruction data: discriminator (8 bytes) + amount (u64 LE)
-    const data = new Uint8Array(16);
-    data.set(DISCRIMINATORS.withdraw, 0);
-    data.set(encodeU64LE(withdrawAmount), 8);
-
-    const withdrawIx = new TransactionInstruction({
-      programId,
-      keys: [
-        { pubkey: buyerPubkey, isSigner: true, isWritable: true },
-        { pubkey: vaultPda, isSigner: false, isWritable: true },
-        { pubkey: vaultTokenPda, isSigner: false, isWritable: true },
-        { pubkey: buyerAta, isSigner: false, isWritable: true },
-        { pubkey: usdcMint, isSigner: false, isWritable: false },
-        { pubkey: tokenProgramId, isSigner: false, isWritable: false },
-      ],
-      data: Buffer.from(data),
-    });
-
-    // Build and send transaction
-    const tx = new Transaction().add(withdrawIx);
-    const txSignature = await sendAndConfirmTransaction(
-      connection,
-      tx,
-      [buyerKeypair],
-    );
+    const txSignature = await connection.sendRawTransaction(tx.serialize());
+    await connection.confirmTransaction(txSignature, 'confirmed');
 
     return {
       tx_signature: txSignature,
       amount_withdrawn: withdrawAmount,
-      status: 'complete',
+      status: 'complete' as const,
     };
   }
 
