@@ -353,6 +353,14 @@ export interface VaultWithdrawGatewayResponse {
   cooldown_remaining_ms?: number;
 }
 
+/** POST /v1/withdraw/sign response -- partially-signed withdraw TX from gateway. */
+export interface VaultWithdrawSignResponse {
+  /** Base64-encoded serialized Solana transaction (platform-signed, buyer signature missing). */
+  transaction: string;
+  /** Amount in USDC base units being withdrawn. */
+  amount: number;
+}
+
 /** Full SDK withdraw result (returned after cooldown + on-chain TX). */
 export interface VaultWithdrawCompleteResponse {
   status: 'complete';

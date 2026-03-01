@@ -48,6 +48,7 @@ export type {
   VaultDepositResponse,
   VaultWithdrawResponse,
   VaultWithdrawGatewayResponse,
+  VaultWithdrawSignResponse,
   VaultWithdrawCompleteResponse,
   VaultReceipt,
   VaultDepositOptions,
