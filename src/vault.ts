@@ -17,7 +17,7 @@ import type {
 
 /** Well-known vault program and token addresses (devnet). */
 export const VAULT_CONSTANTS = {
-  PROGRAM_ID: 'EdHt5xXPZugbTqHB6hFK4zRtkWZyLE2Yzb5XDVDkZZK7',
+  PROGRAM_ID: '2KMNnDz1gog5CWgKvuHHXM4fCHRM8bdD2qaaNNitpC2W',
   PLATFORM_PUBKEY: 'JDVpDib6z46KSfsEcwVGuDXeap1a8iGgaqYJdeuokz4q',
   USDC_MINT_DEVNET: 'FED9q6ZxwjiwHtQ3Rc3CJgpFqiME9txNgNbEdLLs3q2H',
   TOKEN_PROGRAM_ID: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
