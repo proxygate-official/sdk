@@ -36,36 +36,26 @@ export interface CreateClientOptions {
 // V1 endpoint response types
 // ---------------------------------------------------------------------------
 
-/** GET /v1/balance */
-export interface BalanceResponse {
-  balance: number;
-  total_deposited: number;
-  total_spent: number;
-  currency: string;
-  usdc_equivalent: string;
-}
-
-/** Pricing listing within a service group. */
-export interface PricingListing {
-  seller_id: string;
-  pricing_model: string;
-  price_per_request?: number;
-  input_price_per_token?: number;
-  output_price_per_token?: number;
-  max_output_tokens?: number;
-  uptime_pct?: number;
-  latency_ms?: number;
-}
-
-/** Service group in pricing response. */
-export interface PricingService {
+/** Single service entry in pricing response (flat — no nested listings). */
+export interface PricingServiceEntry {
   service: string;
-  listings: PricingListing[];
+  name: string;
+  pricing_unit: 'per_request' | 'per_token' | 'both';
+  price_per_request_micro_cents: number;
+  price_per_request_usdc: number;
+  price_per_input_token_micro_cents: number | null;
+  price_per_output_token_micro_cents: number | null;
+  price_per_input_token_usdc: number | null;
+  price_per_output_token_usdc: number | null;
+  available_rpm: number;
+  sellers: number;
 }
 
 /** GET /v1/pricing */
 export interface PricingResponse {
-  services: PricingService[];
+  services: PricingServiceEntry[];
+  has_more: boolean;
+  cursor: string | null;
   currency: string;
   deposit_endpoint: string;
   last_updated: string;
@@ -74,30 +64,31 @@ export interface PricingResponse {
 /** Single usage log entry. */
 export interface UsageEntry {
   id: string;
-  timestamp: string;
   service: string;
+  path: string;
   model: string | null;
   status_code: number;
   latency_ms: number;
-  tokens_used: number | null;
   cost_micro_cents: number;
+  listing_id: string;
   seller_id: string;
+  created_at: string;
 }
 
-/** Aggregated usage summary per service. */
-export interface UsageSummary {
+/** Aggregated usage summary per service/model. */
+export interface UsageServiceSummary {
   service: string;
-  total_requests: number;
-  total_cost: number;
-  avg_latency: number;
+  model: string | null;
+  request_count: number;
+  total_cost_micro_cents: number;
 }
 
 /** GET /v1/usage */
 export interface UsageResponse {
   usage: UsageEntry[];
-  summary: UsageSummary[];
-  limit: number;
-  offset: number;
+  summary: UsageServiceSummary[];
+  has_more: boolean;
+  cursor: string | null;
 }
 
 /** POST /v1/rate */
@@ -117,57 +108,91 @@ export interface ApisResponse {
 /** Aggregated service stats entry. */
 export interface ServiceStats {
   service: string;
-  seller_count: number;
-  cheapest_price: number;
+  service_name: string;
+  cheapest_price_usdc: number;
   avg_latency_ms: number;
-  avg_uptime: number;
-  total_requests: number;
+  active_seller_count: number;
+  total_capacity_rpm: number;
+  avg_uptime_percent: number;
+  avg_rating: number;
+  best_rated_seller_wallet: string;
+  pricing_units: 'per_request' | 'per_token' | 'both';
 }
 
 /** GET /v1/services */
 export interface ServicesResponse {
   services: ServiceStats[];
+  has_more: boolean;
+  cursor: string | null;
+  count: number;
 }
 
 /** GET /v1/seller/profile/:wallet */
 export interface SellerProfileResponse {
   wallet: string;
+  services_listed: number;
   services: string[];
-  uptime_pct: number;
-  avg_latency_ms: number;
+  uptime_percent: number | null;
+  latency: { p50: number; p95: number; p99: number } | null;
+  trust_score: number;
   badges: string[];
-  total_requests: number;
+  total_requests_served: number;
   member_since: string;
-  rating_score?: number;
-  total_ratings?: number;
+  avg_rating: number;
+  total_ratings: number;
 }
 
-/** Daily settlement breakdown. */
-export interface SettlementDaily {
+/** Buyer daily settlement entry. */
+export interface SettlementDailyBuyer {
   date: string;
-  total_amount: number;
-  total_requests: number;
-  services: Record<string, number>;
+  service: string;
+  request_count: number;
+  total_cost_usdc: number;
+  total_fees_usdc: number;
+  net_spend_usdc: number;
 }
 
-/** Settlement period summary. */
-export interface SettlementSummary {
-  total_amount: number;
-  total_requests: number;
-  period_days: number;
+/** Seller daily settlement entry. */
+export interface SettlementDailySeller {
+  date: string;
+  service: string;
+  request_count: number;
+  total_earnings_usdc: number;
+  total_fees_usdc: number;
+  net_payout_usdc: number;
 }
 
-/** Settlement payout record. */
+/** Daily settlement entry (buyer or seller). */
+export type SettlementDaily = SettlementDailyBuyer | SettlementDailySeller;
+
+/** Buyer settlement summary. */
+export interface SettlementSummaryBuyer {
+  total_requests: number;
+  total_cost_usdc: number;
+  total_fees_usdc: number;
+}
+
+/** Seller settlement summary. */
+export interface SettlementSummarySeller {
+  total_requests: number;
+  total_earnings_usdc: number;
+  total_fees_usdc: number;
+}
+
+/** Settlement summary (buyer or seller). */
+export type SettlementSummary = SettlementSummaryBuyer | SettlementSummarySeller;
+
+/** Settlement payout record (seller only). */
 export interface SettlementPayout {
-  id: string;
-  amount: number;
-  tx_signature: string;
-  created_at: string;
+  date: string;
+  amount_usdc: number;
+  tx_signature: string | null;
+  status: string;
 }
 
 /** GET /v1/settlement/history */
 export interface SettlementsResponse {
-  role: string;
+  role: 'buyer' | 'seller';
   date_range: { from: string; to: string };
   daily: SettlementDaily[];
   cursor: string | null;
@@ -242,6 +267,8 @@ export interface CategoryEntry {
 /** GET /v1/categories response. */
 export interface CategoriesResponse {
   categories: CategoryEntry[];
+  has_more: boolean;
+  cursor: string | null;
 }
 
 /** Single API listing detail (returned by api()). */
@@ -281,7 +308,7 @@ export interface UsageQueryOptions {
   from?: string;
   to?: string;
   limit?: number;
-  offset?: number;
+  cursor?: string;
 }
 
 /** GET /v1/apis query options. */
@@ -474,9 +501,31 @@ export interface ListingDetail extends ListingSummary {
   sync_status?: 'synced' | 'pending';
 }
 
+/** Raw listing row from gateway (seller_listings + joined service_catalog). */
+export interface ListingRow {
+  id: string;
+  seller_id: string;
+  catalog_id: string;
+  auth_pattern: ListingAuthPattern;
+  total_rpm: number;
+  reserved_rpm: number;
+  price_per_request: number;
+  price_per_input_token: number | null;
+  price_per_output_token: number | null;
+  pricing_model: string;
+  pricing_unit: string;
+  is_active: boolean;
+  key_masked: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  service_catalog: { slug: string; name: string; base_url: string } | null;
+  [key: string]: unknown;
+}
+
 /** Response from list endpoint. */
 export interface ListListingsResponse {
-  data: ListingSummary[];
+  listings: ListingRow[];
 }
 
 /** Options for creating a listing. */
@@ -505,8 +554,12 @@ export interface CreateListingOptions {
 }
 
 /** Response from create endpoint. */
-export interface CreateListingResponse extends ListingDetail {
+export interface CreateListingResponse {
   id: string;
+  service: string;
+  is_active: boolean;
+  key_masked: string;
+  sync_status: 'synced' | 'pending';
 }
 
 /** Options for updating a listing (all fields optional). */
@@ -522,7 +575,7 @@ export interface UpdateListingOptions {
 /** Response from update endpoint. */
 export interface UpdateListingResponse {
   updated: true;
-  listing: ListingSummary;
+  id: string;
 }
 
 /** Response from pause endpoint. */

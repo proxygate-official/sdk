@@ -11,7 +11,7 @@ import type {
   CreateClientOptions,
   AuthHeaders,
   VaultDelegate,
-  BalanceResponse,
+  VaultBalanceResponse,
   PricingResponse,
   UsageResponse,
   RateResponse,
@@ -352,8 +352,8 @@ export class ProxyGateClient {
   // -------------------------------------------------------------------------
 
   /** Get credit balance for the authenticated wallet. */
-  async balance(): Promise<BalanceResponse> {
-    return this._authenticatedRequest<BalanceResponse>('GET', '/v1/balance');
+  async balance(): Promise<VaultBalanceResponse> {
+    return this._authenticatedRequest<VaultBalanceResponse>('GET', '/v1/balance');
   }
 
   /** Get available API pricing. Public endpoint (no wallet auth required). */
