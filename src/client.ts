@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { NoncePool } from './nonce-pool.js';
 import { encodeBase58 } from './base58.js';
 import { VaultClient } from './vault.js';
+import { ListingsClient } from './listings.js';
 import type {
   ProxyGateClientOptions,
   CreateClientOptions,
@@ -309,6 +310,28 @@ export class ProxyGateClient {
       this._vault = new VaultClient(this._vaultDelegate());
     }
     return this._vault;
+  }
+
+  // -------------------------------------------------------------------------
+  // Listings namespace
+  // -------------------------------------------------------------------------
+
+  private _listings?: ListingsClient;
+
+  /**
+   * Listings namespace for seller listing management.
+   *
+   * @example
+   * ```ts
+   * const listings = await client.listings.list();
+   * const created = await client.listings.create({ service_name: 'my-api', ... });
+   * ```
+   */
+  get listings(): ListingsClient {
+    if (!this._listings) {
+      this._listings = new ListingsClient(this._vaultDelegate());
+    }
+    return this._listings;
   }
 
   /**

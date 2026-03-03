@@ -4,6 +4,9 @@ export { ProxyGateClient, ProxyGateError } from './client.js';
 // Vault
 export { VaultClient, VAULT_CONSTANTS } from './vault.js';
 
+// Listings
+export { ListingsClient } from './listings.js';
+
 // Auth (existing)
 export { signRequest } from './auth.js';
 
@@ -56,4 +59,17 @@ export type {
   VaultWithdrawOptions,
   ReceiptVerificationResult,
   VaultDelegate,
+  ListingSummary,
+  ListingDetail,
+  ListListingsResponse,
+  CreateListingOptions,
+  CreateListingResponse,
+  UpdateListingOptions,
+  UpdateListingResponse,
+  PauseListingResponse,
+  UnpauseListingResponse,
+  DeleteListingResponse,
+  RotateKeyOptions,
+  RotateKeyResponse,
+  ListingAuthPattern,
 } from './types.js';
