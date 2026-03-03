@@ -315,10 +315,10 @@ describe('vault.verifyReceipts()', () => {
     vault._setPlatformPubkey(testKeypair.publicKey);
   });
 
-  it('valid receipt passes verification', () => {
+  it('valid receipt passes verification', async () => {
     const receipt = createSignedReceipt(testKeypair);
 
-    const results = vault.verifyReceipts([receipt]);
+    const results = await vault.verifyReceipts([receipt]);
 
     expect(results).toHaveLength(1);
     expect(results[0].valid).toBe(true);
@@ -326,47 +326,47 @@ describe('vault.verifyReceipts()', () => {
     expect(results[0].receipt).toEqual(receipt);
   });
 
-  it('tampered receipt (modified amount) fails verification', () => {
+  it('tampered receipt (modified amount) fails verification', async () => {
     const receipt = createSignedReceipt(testKeypair);
     // Tamper with the amount
     receipt.amount = 99999;
 
-    const results = vault.verifyReceipts([receipt]);
+    const results = await vault.verifyReceipts([receipt]);
 
     expect(results).toHaveLength(1);
     expect(results[0].valid).toBe(false);
     expect(results[0].reason).toBe('Signature verification failed');
   });
 
-  it('invalid signature (wrong key) fails verification', () => {
+  it('invalid signature (wrong key) fails verification', async () => {
     const wrongKeypair = nacl.sign.keyPair();
     const receipt = createSignedReceipt(wrongKeypair);
 
-    const results = vault.verifyReceipts([receipt]);
+    const results = await vault.verifyReceipts([receipt]);
 
     expect(results).toHaveLength(1);
     expect(results[0].valid).toBe(false);
     expect(results[0].reason).toBe('Signature verification failed');
   });
 
-  it('empty receipts array returns empty results', () => {
-    const results = vault.verifyReceipts([]);
+  it('empty receipts array returns empty results', async () => {
+    const results = await vault.verifyReceipts([]);
 
     expect(results).toEqual([]);
   });
 
-  it('receipt with invalid base64 signature returns error', () => {
+  it('receipt with invalid base64 signature returns error', async () => {
     const receipt = createSignedReceipt(testKeypair);
     receipt.signature = '!!!not-valid-base64!!!';
 
-    const results = vault.verifyReceipts([receipt]);
+    const results = await vault.verifyReceipts([receipt]);
 
     expect(results).toHaveLength(1);
     expect(results[0].valid).toBe(false);
     expect(results[0].reason).toContain('Invalid signature length');
   });
 
-  it('verifies multiple receipts in batch', () => {
+  it('verifies multiple receipts in batch', async () => {
     const receipt1 = createSignedReceipt(testKeypair, {
       request_id: 'req-001',
       amount: 1000,
@@ -382,7 +382,7 @@ describe('vault.verifyReceipts()', () => {
     // Tamper with one
     tamperedReceipt.amount = 9999;
 
-    const results = vault.verifyReceipts([
+    const results = await vault.verifyReceipts([
       receipt1,
       receipt2,
       tamperedReceipt,
@@ -394,7 +394,7 @@ describe('vault.verifyReceipts()', () => {
     expect(results[2].valid).toBe(false);
   });
 
-  it('uses canonical JSON key order (alphabetical) for verification', () => {
+  it('uses canonical JSON key order (alphabetical) for verification', async () => {
     // Create receipt and manually verify the canonical format
     const payload = {
       request_id: 'req-test',
@@ -420,7 +420,7 @@ describe('vault.verifyReceipts()', () => {
       signature: toBase64(signature),
     };
 
-    const results = vault.verifyReceipts([receipt]);
+    const results = await vault.verifyReceipts([receipt]);
     expect(results[0].valid).toBe(true);
   });
 });
@@ -432,19 +432,13 @@ describe('vault.verifyReceipts()', () => {
 describe('VAULT_CONSTANTS', () => {
   it('has correct program ID', () => {
     expect(VAULT_CONSTANTS.PROGRAM_ID).toBe(
-      '98YGxLNX668FUferS7DQD69rzRowi6VB8YoBBC63eW9n',
-    );
-  });
-
-  it('has correct platform pubkey', () => {
-    expect(VAULT_CONSTANTS.PLATFORM_PUBKEY).toBe(
-      'JDVpDib6z46KSfsEcwVGuDXeap1a8iGgaqYJdeuokz4q',
+      '2KMNnDz1gog5CWgKvuHHXM4fCHRM8bdD2qaaNNitpC2W',
     );
   });
 
   it('has correct USDC mint (devnet)', () => {
     expect(VAULT_CONSTANTS.USDC_MINT_DEVNET).toBe(
-      '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+      'FED9q6ZxwjiwHtQ3Rc3CJgpFqiME9txNgNbEdLLs3q2H',
     );
   });
 

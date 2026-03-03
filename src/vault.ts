@@ -18,7 +18,6 @@ import type {
 /** Well-known vault program and token addresses (devnet). */
 export const VAULT_CONSTANTS = {
   PROGRAM_ID: '2KMNnDz1gog5CWgKvuHHXM4fCHRM8bdD2qaaNNitpC2W',
-  PLATFORM_PUBKEY: 'JDVpDib6z46KSfsEcwVGuDXeap1a8iGgaqYJdeuokz4q',
   USDC_MINT_DEVNET: 'FED9q6ZxwjiwHtQ3Rc3CJgpFqiME9txNgNbEdLLs3q2H',
   TOKEN_PROGRAM_ID: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   ASSOCIATED_TOKEN_PROGRAM_ID: 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
@@ -136,13 +135,31 @@ export class VaultClient {
 
   /**
    * Platform public key bytes for receipt verification.
-   * Can be overridden for testing via `_setPlatformPubkey()`.
+   * Fetched from gateway /health endpoint on first use, or set via `_setPlatformPubkey()`.
    */
-  private _platformPubkeyBytes: Uint8Array;
+  private _platformPubkeyBytes: Uint8Array | null;
 
   constructor(delegate: VaultDelegate) {
     this._delegate = delegate;
-    this._platformPubkeyBytes = decodeBase58(VAULT_CONSTANTS.PLATFORM_PUBKEY);
+    this._platformPubkeyBytes = null;
+  }
+
+  /**
+   * Fetch platform pubkey from gateway health endpoint (cached after first call).
+   */
+  private async _getPlatformPubkey(): Promise<Uint8Array> {
+    if (this._platformPubkeyBytes) return this._platformPubkeyBytes;
+
+    const res = await this._delegate.authenticatedRequest<{
+      platform_pubkey?: string;
+    }>('GET', '/health');
+
+    if (!res.platform_pubkey) {
+      throw new Error('Gateway did not return platform_pubkey in /health response');
+    }
+
+    this._platformPubkeyBytes = decodeBase58(res.platform_pubkey);
+    return this._platformPubkeyBytes;
   }
 
   // -------------------------------------------------------------------------
@@ -374,7 +391,9 @@ export class VaultClient {
    * @param receipts - Array of signed receipts to verify.
    * @returns Verification results for each receipt.
    */
-  verifyReceipts(receipts: VaultReceipt[]): ReceiptVerificationResult[] {
+  async verifyReceipts(receipts: VaultReceipt[]): Promise<ReceiptVerificationResult[]> {
+    const pubkeyBytes = await this._getPlatformPubkey();
+
     return receipts.map((receipt) => {
       try {
         const messageBytes = canonicalizeReceipt(receipt);
@@ -391,7 +410,7 @@ export class VaultClient {
         const valid = nacl.sign.detached.verify(
           messageBytes,
           signatureBytes,
-          this._platformPubkeyBytes,
+          pubkeyBytes,
         );
 
         return {
