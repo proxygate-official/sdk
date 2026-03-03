@@ -7,6 +7,7 @@ import type {
   VaultDepositOptions,
   VaultWithdrawOptions,
   VaultWithdrawCompleteResponse,
+  VaultWithdrawConfirmResponse,
   VaultReceipt,
   ReceiptVerificationResult,
 } from './types';
@@ -372,11 +373,40 @@ export class VaultClient {
     const txSignature = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSignature, 'confirmed');
 
+    // Step 6: Confirm withdrawal with gateway (update ledger)
+    try {
+      await this.withdrawConfirm(txSignature);
+    } catch (err) {
+      // Non-fatal: on-chain TX is source of truth
+      // Gateway will catch up via reconciliation worker
+      console.warn('[ProxyGate SDK] withdraw confirm failed (non-fatal):', err instanceof Error ? err.message : String(err));
+    }
+
     return {
       tx_signature: txSignature,
       amount_withdrawn: withdrawAmount,
       status: 'complete' as const,
     };
+  }
+
+  /**
+   * Confirm a completed on-chain withdrawal with the gateway.
+   *
+   * Called automatically by `withdraw()`. Use this standalone method
+   * for recovery if the SDK crashed after the on-chain TX but before
+   * the gateway was notified.
+   *
+   * @param txSignature - The Solana transaction signature.
+   * @returns Withdraw confirm response with updated balance.
+   */
+  async withdrawConfirm(
+    txSignature: string,
+  ): Promise<VaultWithdrawConfirmResponse> {
+    return this._delegate.authenticatedRequest<VaultWithdrawConfirmResponse>(
+      'POST',
+      '/v1/withdraw/confirm',
+      { body: { tx_signature: txSignature } },
+    );
   }
 
   /**

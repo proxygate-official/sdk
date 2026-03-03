@@ -368,6 +368,14 @@ export interface VaultWithdrawCompleteResponse {
   amount_withdrawn: number;
 }
 
+/** POST /v1/withdraw/confirm response */
+export interface VaultWithdrawConfirmResponse {
+  balance: number;
+  withdrawn: number;
+  tx_signature: string;
+  currency: string;
+}
+
 /** POST /v1/withdraw response — union of gateway intermediate and SDK complete states. */
 export type VaultWithdrawResponse =
   | VaultWithdrawGatewayResponse
