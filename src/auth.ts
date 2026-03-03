@@ -1,5 +1,5 @@
 import nacl from 'tweetnacl';
-import type { SignRequestOptions, AuthHeaders } from './types';
+import type { SignRequestOptions, AuthHeaders } from './types.js';
 
 /**
  * Fetch a nonce from the ProxyGate gateway and sign it with your ed25519 key.

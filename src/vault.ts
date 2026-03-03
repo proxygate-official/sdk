@@ -1,5 +1,5 @@
 import nacl from 'tweetnacl';
-import { decodeBase58 } from './base58';
+import { decodeBase58 } from './base58.js';
 import type {
   VaultDelegate,
   VaultBalanceResponse,
@@ -10,7 +10,7 @@ import type {
   VaultWithdrawConfirmResponse,
   VaultReceipt,
   ReceiptVerificationResult,
-} from './types';
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Constants

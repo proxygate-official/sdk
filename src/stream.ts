@@ -1,4 +1,4 @@
-import type { SSEEvent } from './types';
+import type { SSEEvent } from './types.js';
 
 /**
  * Parse a server-sent events stream from a fetch Response into an async

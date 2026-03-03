@@ -1,17 +1,17 @@
 // Client
-export { ProxyGateClient, ProxyGateError } from './client';
+export { ProxyGateClient, ProxyGateError } from './client.js';
 
 // Vault
-export { VaultClient, VAULT_CONSTANTS } from './vault';
+export { VaultClient, VAULT_CONSTANTS } from './vault.js';
 
 // Auth (existing)
-export { signRequest } from './auth';
+export { signRequest } from './auth.js';
 
 // Streaming
-export { parseSSE } from './stream';
+export { parseSSE } from './stream.js';
 
 // Types (existing + new)
-export type { SignRequestOptions, AuthHeaders } from './types';
+export type { SignRequestOptions, AuthHeaders } from './types.js';
 export type {
   ProxyGateClientOptions,
   CreateClientOptions,
@@ -56,4 +56,4 @@ export type {
   VaultWithdrawOptions,
   ReceiptVerificationResult,
   VaultDelegate,
-} from './types';
+} from './types.js';

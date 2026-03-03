@@ -2,9 +2,9 @@ import nacl from 'tweetnacl';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { NoncePool } from './nonce-pool';
-import { encodeBase58 } from './base58';
-import { VaultClient } from './vault';
+import { NoncePool } from './nonce-pool.js';
+import { encodeBase58 } from './base58.js';
+import { VaultClient } from './vault.js';
 import type {
   ProxyGateClientOptions,
   CreateClientOptions,
@@ -28,7 +28,7 @@ import type {
   ProxyOptions,
   CategoriesResponse,
   ApiListingDetail,
-} from './types';
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Error class
