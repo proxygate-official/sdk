@@ -36,6 +36,17 @@ export interface CreateClientOptions {
 // V1 endpoint response types
 // ---------------------------------------------------------------------------
 
+/** JSON Schema Draft-07 object (open-ended). */
+export type JsonSchema = Record<string, unknown>;
+
+/** A single documented endpoint on a listing. */
+export interface EndpointSpec {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  path: string;
+  description?: string;
+  request_schema?: JsonSchema;
+}
+
 /** Single service entry in pricing response (flat — no nested listings). */
 export interface PricingServiceEntry {
   service: string;
@@ -290,6 +301,7 @@ export interface ApiListingDetail {
   is_available: boolean;
   member_since: string;
   category_slugs?: string[];
+  endpoints: EndpointSpec[];
 }
 
 // ---------------------------------------------------------------------------
@@ -491,6 +503,7 @@ export interface ListingSummary {
 /** Full listing detail (single listing response). */
 export interface ListingDetail extends ListingSummary {
   allowed_paths: string[];
+  endpoints: EndpointSpec[];
   pricing_model: string;
   pricing_unit: string;
   price_per_input_token: number | null;
@@ -549,6 +562,7 @@ export interface CreateListingOptions {
   reserved_rpm: number;
   price_per_request: number;
   allowed_paths?: string[];
+  endpoints?: EndpointSpec[];
   category_slugs: string[];
   validation_endpoint?: string;
 }
@@ -569,6 +583,7 @@ export interface UpdateListingOptions {
   reserved_rpm?: number;
   price_per_request?: number;
   allowed_paths?: string[];
+  endpoints?: EndpointSpec[];
   category_slugs?: string[];
 }
 
