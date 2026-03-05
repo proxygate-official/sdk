@@ -404,7 +404,10 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
 
       ws.onclose = (event: CloseEvent): void => {
         connected = false;
-        const reason = event.reason || `WebSocket closed (code ${event.code})`;
+        let reason = event.reason || `WebSocket closed (code ${event.code})`;
+        if (event.code === 4409) {
+          reason = 'Another tunnel session is already active for this wallet. Close it first or wait for it to timeout.';
+        }
 
         if (!settled) {
           settled = true;
@@ -413,7 +416,8 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
 
         options.onDisconnected?.(reason);
 
-        if (!intentionalClose) {
+        // Don't reconnect on duplicate connection (4409) — it will keep failing
+        if (!intentionalClose && event.code !== 4409) {
           scheduleReconnect();
         }
       };
