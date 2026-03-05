@@ -667,6 +667,7 @@ export interface TunnelOptions {
   onDisconnected?: (reason: string) => void;
   onError?: (error: Error) => void;
   onRequest?: (requestId: string, service: string, path: string) => void;
+  onDrained?: () => void;
 }
 
 /** A listing registered through the tunnel. */
@@ -680,5 +681,6 @@ export interface TunnelRegisteredListing {
 export interface TunnelClient {
   connect(): Promise<TunnelRegisteredListing[]>;
   disconnect(): void;
+  drain(): Promise<void>;
   isConnected(): boolean;
 }

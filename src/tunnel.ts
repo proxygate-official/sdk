@@ -68,10 +68,15 @@ interface TunnelPongMessage {
   ts: number;
 }
 
+interface TunnelDrainedMessage {
+  type: 'drained';
+}
+
 type IncomingMessage =
   | TunnelRegisteredMessage
   | TunnelRequestMessage
   | TunnelPingMessage
+  | TunnelDrainedMessage
   | TunnelErrorMessage;
 
 // ---------------------------------------------------------------------------
@@ -173,6 +178,7 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
   let connected = false;
   let intentionalClose = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let drainResolve: (() => void) | null = null;
 
   // ------------------------------------------------------------------
   // Send helper
@@ -375,6 +381,15 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
             break;
           }
 
+          case 'drained': {
+            options.onDrained?.();
+            if (drainResolve) {
+              drainResolve();
+              drainResolve = null;
+            }
+            break;
+          }
+
           case 'error': {
             const error = new Error(msg.error);
             if (!settled) {
@@ -419,6 +434,16 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
     async connect(): Promise<TunnelRegisteredListing[]> {
       intentionalClose = false;
       return connectInternal();
+    },
+
+    async drain(): Promise<void> {
+      if (!connected || !ws || ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      return new Promise<void>((resolve) => {
+        drainResolve = resolve;
+        send({ type: 'drain' });
+      });
     },
 
     disconnect(): void {
