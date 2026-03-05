@@ -29,6 +29,7 @@ import type {
   ProxyOptions,
   CategoriesResponse,
   ApiListingDetail,
+  ListingDocsResponse,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -419,6 +420,25 @@ export class ProxyGateClient {
       );
     }
     return listing;
+  }
+
+  /**
+   * Get documentation for a listing (OpenAPI spec or markdown).
+   * Public endpoint (no wallet auth required).
+   * Returns null if no docs exist.
+   */
+  async docs(listingId: string): Promise<ListingDocsResponse | null> {
+    try {
+      return await this._publicRequest<ListingDocsResponse>(
+        'GET',
+        `/v1/apis/${encodeURIComponent(listingId)}/docs`,
+      );
+    } catch (err) {
+      if (err instanceof ProxyGateError && err.statusCode === 404) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   /**

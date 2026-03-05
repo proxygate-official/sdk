@@ -282,6 +282,15 @@ export interface CategoriesResponse {
   cursor: string | null;
 }
 
+/** GET /v1/apis/:listingId/docs response. */
+export interface ListingDocsResponse {
+  listing_id: string;
+  doc_type: 'openapi' | 'markdown';
+  content: string;
+  parsed_endpoints: Record<string, unknown>[] | null;
+  updated_at: string;
+}
+
 /** Single API listing detail (returned by api()). */
 export interface ApiListingDetail {
   listing_id: string;
@@ -302,6 +311,7 @@ export interface ApiListingDetail {
   member_since: string;
   category_slugs?: string[];
   endpoints: EndpointSpec[];
+  has_docs?: boolean;
 }
 
 // ---------------------------------------------------------------------------

@@ -43,6 +43,7 @@ export type {
   CategoryEntry,
   CategorySubcategory,
   ApiListingDetail,
+  ListingDocsResponse,
   PricingQueryOptions,
   UsageQueryOptions,
   ApisQueryOptions,
