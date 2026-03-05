@@ -7,6 +7,9 @@ export { VaultClient, VAULT_CONSTANTS } from './vault.js';
 // Listings
 export { ListingsClient } from './listings.js';
 
+// Tunnel
+export { createTunnelClient } from './tunnel.js';
+
 // Auth (existing)
 export { signRequest } from './auth.js';
 
@@ -76,4 +79,8 @@ export type {
   RotateKeyOptions,
   RotateKeyResponse,
   ListingAuthPattern,
+  TunnelServiceConfig,
+  TunnelOptions,
+  TunnelRegisteredListing,
+  TunnelClient,
 } from './types.js';
