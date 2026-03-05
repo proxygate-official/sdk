@@ -1,0 +1,24 @@
+/** Well-known vault program and token addresses (devnet). */
+export const VAULT_CONSTANTS = {
+  PROGRAM_ID: '2KMNnDz1gog5CWgKvuHHXM4fCHRM8bdD2qaaNNitpC2W',
+  USDC_MINT_DEVNET: 'FED9q6ZxwjiwHtQ3Rc3CJgpFqiME9txNgNbEdLLs3q2H',
+  TOKEN_PROGRAM_ID: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+  ASSOCIATED_TOKEN_PROGRAM_ID: 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
+  SYSTEM_PROGRAM_ID: '11111111111111111111111111111111',
+} as const;
+
+/**
+ * Anchor discriminators (first 8 bytes of sha256("global:{instruction}")).
+ * These are stable as long as the instruction names don't change.
+ */
+export const DISCRIMINATORS = {
+  deposit: Uint8Array.from([242, 35, 198, 137, 82, 225, 242, 182]),
+  withdraw: Uint8Array.from([183, 18, 70, 156, 148, 109, 161, 34]),
+} as const;
+
+/** Default Solana devnet RPC. */
+export const DEFAULT_RPC_URL = 'https://api.devnet.solana.com';
+
+/** Default cooldown polling config. */
+export const DEFAULT_POLL_INTERVAL_MS = 5000;
+export const DEFAULT_MAX_WAIT_MS = 120_000;
