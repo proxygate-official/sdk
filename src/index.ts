@@ -10,6 +10,9 @@ export { ListingsClient } from './listings.js';
 // Tunnel
 export { createTunnelClient } from './tunnel.js';
 
+// ProxyGate namespace (one-liner APIs)
+export { ProxyGate } from './proxygate.js';
+
 // Auth (existing)
 export { signRequest } from './auth.js';
 
@@ -83,4 +86,6 @@ export type {
   TunnelOptions,
   TunnelRegisteredListing,
   TunnelClient,
+  ServeOptions,
+  ProxyGateServeOptions,
 } from './types.js';
