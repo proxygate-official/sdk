@@ -448,6 +448,8 @@ export interface VaultWithdrawOptions {
   pollIntervalMs?: number;
   /** Max wait time in ms before giving up (default 120000 = 2 minutes). */
   maxWaitMs?: number;
+  /** Optional progress callback, called on each poll iteration. */
+  onProgress?: (info: { status: string; remainingMs: number; elapsed: number }) => void;
 }
 
 /** Receipt verification result. */

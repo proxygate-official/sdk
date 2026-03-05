@@ -308,11 +308,17 @@ export class VaultClient {
     const pollInterval = opts?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     const maxWait = opts?.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
 
-    if (
-      withdrawResponse.status === 'cooldown_started' ||
-      withdrawResponse.status === 'cooldown_active'
-    ) {
+    // All withdraw statuses start a cooldown (even 'ready' with no unsettled calls).
+    // Poll balance until cooldown expires before requesting the co-signed TX.
+    {
       const startTime = Date.now();
+      const onProgress = opts?.onProgress;
+
+      onProgress?.({
+        status: withdrawResponse.status,
+        remainingMs: withdrawResponse.cooldown_ms ?? 60_000,
+        elapsed: 0,
+      });
 
       while (Date.now() - startTime < maxWait) {
         await sleep(pollInterval);
@@ -326,7 +332,14 @@ export class VaultClient {
           break;
         }
 
-        if (Date.now() - startTime >= maxWait) {
+        const elapsed = Date.now() - startTime;
+        onProgress?.({
+          status: 'cooldown_active',
+          remainingMs: Math.max(0, (withdrawResponse.cooldown_ms ?? 60_000) - elapsed),
+          elapsed,
+        });
+
+        if (elapsed >= maxWait) {
           throw new Error(
             `Withdraw cooldown did not complete within ${maxWait}ms. ` +
             'Try again later or increase maxWaitMs.',
