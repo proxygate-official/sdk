@@ -86,3 +86,21 @@ export type {
   TunnelRegisteredListing,
   TunnelClient,
 } from './types/tunnel.js';
+
+export type {
+  JobStatus,
+  InteractionType,
+  Job,
+  JobSubmission,
+  JobDetail,
+  JobsListOptions,
+  JobsListResponse,
+  CreateJobOptions,
+  CreateJobResponse,
+  ClaimJobResponse,
+  SubmitJobOptions,
+  SubmitJobResponse,
+  AcceptJobResponse,
+  RejectJobResponse,
+  CancelJobResponse,
+} from './types/jobs.js';

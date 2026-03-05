@@ -6,6 +6,7 @@ import { NoncePool } from './nonce-pool.js';
 import { encodeBase58 } from './base58.js';
 import { VaultClient } from './vault.js';
 import { ListingsClient } from './listings.js';
+import { JobsClient } from './jobs.js';
 import {
   ProxyGateError, bufferToBase64, buildQuery,
   buildUrl, authenticatedRequest, publicRequest,
@@ -67,6 +68,9 @@ export class ProxyGateClient {
 
   private _listings?: ListingsClient;
   get listings(): ListingsClient { if (!this._listings) this._listings = new ListingsClient(this._vaultDelegate()); return this._listings; }
+
+  private _jobs?: JobsClient;
+  get jobs(): JobsClient { if (!this._jobs) this._jobs = new JobsClient(this._vaultDelegate()); return this._jobs; }
 
   /** @internal */
   _vaultDelegate(): VaultDelegate {

@@ -7,6 +7,9 @@ export { VaultClient, VAULT_CONSTANTS } from './vault.js';
 // Listings
 export { ListingsClient } from './listings.js';
 
+// Jobs
+export { JobsClient } from './jobs.js';
+
 // Tunnel
 export { createTunnelClient } from './tunnel.js';
 
@@ -83,4 +86,19 @@ export type {
   TunnelOptions,
   TunnelRegisteredListing,
   TunnelClient,
+  JobStatus,
+  InteractionType,
+  Job,
+  JobSubmission,
+  JobDetail,
+  JobsListOptions,
+  JobsListResponse,
+  CreateJobOptions,
+  CreateJobResponse,
+  ClaimJobResponse,
+  SubmitJobOptions,
+  SubmitJobResponse,
+  AcceptJobResponse,
+  RejectJobResponse,
+  CancelJobResponse,
 } from './types.js';
