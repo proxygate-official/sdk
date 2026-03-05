@@ -655,6 +655,30 @@ export interface TunnelServiceConfig {
     path: string;
     description?: string;
   }>;
+  /** Path to docs file (.yaml/.json = openapi, .md = markdown). Read and uploaded on connect. */
+  docs?: string;
+}
+
+/** Options for client.serve() — exposes local services via tunnel. */
+export interface ServeOptions {
+  /** Callback when tunnel is connected and services registered. */
+  onConnected?: (listings: TunnelRegisteredListing[]) => void;
+  /** Callback when tunnel disconnects. */
+  onDisconnected?: (reason: string) => void;
+  /** Callback on errors. */
+  onError?: (error: Error) => void;
+  /** Callback on each incoming request. */
+  onRequest?: (requestId: string, service: string, path: string) => void;
+}
+
+/** Options for the static ProxyGate.serve() one-liner. */
+export interface ProxyGateServeOptions extends ServeOptions {
+  /** Gateway URL (default: https://gateway.proxygate.ai). */
+  gatewayUrl?: string;
+  /** Path to Solana keypair JSON file. */
+  keypair: string;
+  /** Services to expose. */
+  services: TunnelServiceConfig[];
 }
 
 /** Options for creating a tunnel client. */

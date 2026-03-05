@@ -1,4 +1,6 @@
 import nacl from 'tweetnacl';
+import { readFile } from 'node:fs/promises';
+import { resolve, extname } from 'node:path';
 import type {
   TunnelOptions,
   TunnelClient,
@@ -150,6 +152,33 @@ function resolveServicePort(
 function isSSE(headers: Headers): boolean {
   const ct = headers.get('content-type') ?? '';
   return ct.includes('text/event-stream');
+}
+
+/** Detect doc type from file extension. */
+function detectDocType(filePath: string): 'openapi' | 'markdown' {
+  const ext = extname(filePath).toLowerCase();
+  if (ext === '.md' || ext === '.markdown') return 'markdown';
+  return 'openapi'; // .yaml, .yml, .json
+}
+
+/** Read docs files and return upload payloads keyed by service name. */
+async function loadDocsFiles(
+  services: TunnelServiceConfig[],
+): Promise<Map<string, { doc_type: 'openapi' | 'markdown'; content: string }>> {
+  const result = new Map<string, { doc_type: 'openapi' | 'markdown'; content: string }>();
+
+  for (const svc of services) {
+    if (!svc.docs) continue;
+    try {
+      const filePath = resolve(svc.docs);
+      const content = await readFile(filePath, 'utf-8');
+      result.set(svc.name, { doc_type: detectDocType(filePath), content });
+    } catch {
+      // Docs file not found or unreadable — skip silently
+    }
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -353,6 +382,24 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
           case 'registered': {
             connected = true;
             const listings = msg.listings;
+
+            // Upload docs for each service that has a docs file
+            loadDocsFiles(services).then((docsMap) => {
+              for (const listing of listings) {
+                const docs = docsMap.get(listing.service);
+                if (docs) {
+                  send({
+                    type: 'docs',
+                    listing_id: listing.id,
+                    doc_type: docs.doc_type,
+                    content: docs.content,
+                  });
+                }
+              }
+            }).catch(() => {
+              // Docs upload is best-effort
+            });
+
             if (!settled) {
               settled = true;
               resolve(listings);
