@@ -33,6 +33,7 @@ export interface ListingDetail extends ListingSummary {
   oauth2_flow_type: string | null;
   oauth2_token_url: string | null;
   oauth2_scopes: string | null;
+  upstream_headers?: Record<string, string>;
   sync_status?: 'synced' | 'pending';
 }
 
@@ -107,6 +108,7 @@ export interface UpdateListingOptions {
   allowed_paths?: string[];
   endpoints?: EndpointSpec[];
   category_slugs?: string[];
+  upstream_headers?: Record<string, string>;
 }
 
 /** Response from update endpoint. */
