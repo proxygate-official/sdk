@@ -7,6 +7,7 @@ import { encodeBase58 } from './base58.js';
 import { VaultClient } from './vault.js';
 import { ListingsClient } from './listings.js';
 import { JobsClient } from './jobs.js';
+import { createTunnelClient } from './tunnel.js';
 import {
   ProxyGateError, bufferToBase64, buildQuery,
   buildUrl, authenticatedRequest, publicRequest,
@@ -20,6 +21,7 @@ import type {
   ApisResponse, ServicesResponse, SellerProfileResponse, SettlementsResponse,
   PricingQueryOptions, UsageQueryOptions, ApisQueryOptions, SettlementsQueryOptions,
   RateOptions, ProxyOptions, CategoriesResponse, ApiListingDetail, ListingDocsResponse,
+  TunnelServiceConfig, TunnelClient, ServeOptions,
 } from './types.js';
 
 export { ProxyGateError } from './client/helpers.js';
@@ -71,6 +73,47 @@ export class ProxyGateClient {
 
   private _jobs?: JobsClient;
   get jobs(): JobsClient { if (!this._jobs) this._jobs = new JobsClient(this._vaultDelegate()); return this._jobs; }
+
+  // -------------------------------------------------------------------------
+  // Tunnel / Serve
+  // -------------------------------------------------------------------------
+
+  /**
+   * Expose local services to the ProxyGate network via WebSocket tunnel.
+   * Handles authentication, heartbeat, reconnection, request forwarding,
+   * and docs upload automatically.
+   *
+   * @param services - Services to expose (name, port, optional docs path)
+   * @param options - Event callbacks
+   * @returns Connected TunnelClient
+   *
+   * @example
+   * ```ts
+   * const tunnel = await client.serve([
+   *   { name: 'code-review', port: 3000, docs: './openapi.yaml' },
+   * ]);
+   * // Services are now live on the network
+   * // tunnel.disconnect() to stop
+   * ```
+   */
+  async serve(
+    services: TunnelServiceConfig[],
+    options?: ServeOptions,
+  ): Promise<TunnelClient> {
+    const tunnel = createTunnelClient({
+      gatewayUrl: this.gatewayUrl,
+      walletAddress: this.walletAddress,
+      secretKey: this._secretKey,
+      services,
+      onConnected: options?.onConnected,
+      onDisconnected: options?.onDisconnected,
+      onError: options?.onError,
+      onRequest: options?.onRequest,
+    });
+
+    await tunnel.connect();
+    return tunnel;
+  }
 
   /** @internal */
   _vaultDelegate(): VaultDelegate {

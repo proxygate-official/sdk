@@ -85,6 +85,8 @@ export type {
   TunnelOptions,
   TunnelRegisteredListing,
   TunnelClient,
+  ServeOptions,
+  ProxyGateServeOptions,
 } from './types/tunnel.js';
 
 export type {

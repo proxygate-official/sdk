@@ -1,7 +1,10 @@
+import { readFile } from 'node:fs/promises';
+import { resolve, extname } from 'node:path';
 import type {
   TunnelOptions,
   TunnelClient,
   TunnelRegisteredListing,
+  TunnelServiceConfig,
 } from './types.js';
 import { handleRequest } from './tunnel/message-handler.js';
 import type {
@@ -14,6 +17,41 @@ import {
   getAuthHeaders,
   RECONNECT_DELAY_MS,
 } from './tunnel/ws-manager.js';
+
+// ---------------------------------------------------------------------------
+// Docs helpers
+// ---------------------------------------------------------------------------
+
+/** Detect doc type from file extension. */
+function detectDocType(filePath: string): 'openapi' | 'markdown' {
+  const ext = extname(filePath).toLowerCase();
+  if (ext === '.md' || ext === '.markdown') return 'markdown';
+  return 'openapi'; // .yaml, .yml, .json
+}
+
+/** Read docs files and return upload payloads keyed by service name. */
+async function loadDocsFiles(
+  services: TunnelServiceConfig[],
+): Promise<Map<string, { doc_type: 'openapi' | 'markdown'; content: string }>> {
+  const result = new Map<string, { doc_type: 'openapi' | 'markdown'; content: string }>();
+
+  for (const svc of services) {
+    if (!svc.docs) continue;
+    try {
+      const filePath = resolve(svc.docs);
+      const content = await readFile(filePath, 'utf-8');
+      result.set(svc.name, { doc_type: detectDocType(filePath), content });
+    } catch {
+      // Docs file not found or unreadable — skip silently
+    }
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// createTunnelClient
+// ---------------------------------------------------------------------------
 
 /**
  * Create a tunnel client that connects to the ProxyGate gateway via WebSocket,
@@ -78,8 +116,27 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
         switch (msg.type) {
           case 'registered': {
             connected = true;
-            if (!settled) { settled = true; resolve(msg.listings); }
-            options.onConnected?.(msg.listings);
+            const listings = msg.listings;
+
+            // Upload docs for each service that has a docs file
+            loadDocsFiles(services).then((docsMap) => {
+              for (const listing of listings) {
+                const docs = docsMap.get(listing.service);
+                if (docs) {
+                  send({
+                    type: 'docs',
+                    listing_id: listing.id,
+                    doc_type: docs.doc_type,
+                    content: docs.content,
+                  });
+                }
+              }
+            }).catch(() => {
+              // Docs upload is best-effort
+            });
+
+            if (!settled) { settled = true; resolve(listings); }
+            options.onConnected?.(listings);
             break;
           }
           case 'request': {
