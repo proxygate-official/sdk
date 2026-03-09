@@ -60,6 +60,37 @@ export interface SSEEvent {
 // Proxy options (replaces ProxyChain)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Shield types
+// ---------------------------------------------------------------------------
+
+/** Shield scanning mode for proxy requests. */
+export type ShieldMode = 'monitor' | 'strict' | 'off';
+
+/** Shield metadata returned in proxy response headers. */
+export interface ShieldInfo {
+  /** Mode that was applied: 'monitored' or 'strict'. */
+  mode: string;
+  /** Threat score (0.0 = safe, 1.0 = malicious). Only present in strict mode. */
+  score?: number;
+  /** Comma-separated flags. 'none' if clean. Only present in strict mode. */
+  flags?: string;
+}
+
+/** Error body returned when Shield blocks a response (HTTP 422). */
+export interface ShieldBlockedError {
+  error: 'response_blocked';
+  code: 'shield_blocked';
+  shield_score: number;
+  shield_flags: string[];
+  refunded: boolean;
+  message: string;
+}
+
+// ---------------------------------------------------------------------------
+// Proxy options (replaces ProxyChain)
+// ---------------------------------------------------------------------------
+
 /** Options for client.proxy() method. */
 export interface ProxyOptions {
   /** HTTP method (default: POST). */
@@ -72,6 +103,8 @@ export interface ProxyOptions {
   signal?: AbortSignal;
   /** Number of retries on 5xx or network errors (default: 0). */
   retries?: number;
+  /** Shield scanning mode override for this request (default: buyer profile setting). */
+  shield?: ShieldMode;
 }
 
 /** Delegate object exposing ProxyGateClient internals to VaultClient. */

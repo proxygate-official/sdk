@@ -19,6 +19,9 @@ export { ProxyGate } from './proxygate.js';
 // Auth (existing)
 export { signRequest } from './auth.js';
 
+// Shield
+export { parseShieldInfo } from './client/proxy-methods.js';
+
 // Streaming
 export { parseSSE } from './stream.js';
 
@@ -48,6 +51,9 @@ export type {
   SSEEvent,
   GatewayError,
   ProxyOptions,
+  ShieldMode,
+  ShieldInfo,
+  ShieldBlockedError,
   CategoriesResponse,
   CategoryEntry,
   CategorySubcategory,

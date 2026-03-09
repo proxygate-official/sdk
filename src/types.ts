@@ -10,6 +10,9 @@ export type {
   SSEEvent,
   ProxyOptions,
   VaultDelegate,
+  ShieldMode,
+  ShieldInfo,
+  ShieldBlockedError,
 } from './types/core.js';
 
 export type {

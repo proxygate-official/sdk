@@ -1,4 +1,4 @@
-import type { ProxyOptions, AuthHeaders, ApiListingDetail } from '../types.js';
+import type { ProxyOptions, AuthHeaders, ApiListingDetail, ShieldInfo } from '../types.js';
 
 /** Dependencies needed by proxy methods. */
 export interface ProxyMethodDeps {
@@ -44,6 +44,7 @@ export async function proxyRequest(
     const headers: Record<string, string> = {
       ...authHeaders,
       ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      ...(options?.shield ? { 'x-proxygate-shield': options.shield } : {}),
       ...(options?.headers ?? {}),
     };
 
@@ -75,4 +76,22 @@ export async function proxyRequest(
   }
 
   throw lastError!;
+}
+
+/**
+ * Extract Shield scanning info from proxy response headers.
+ * Returns null if the response was not scanned.
+ */
+export function parseShieldInfo(response: Response): ShieldInfo | null {
+  const mode = response.headers.get('x-proxygate-shield');
+  if (!mode) return null;
+
+  const scoreStr = response.headers.get('x-proxygate-shield-score');
+  const flags = response.headers.get('x-proxygate-shield-flags');
+
+  return {
+    mode,
+    score: scoreStr ? parseFloat(scoreStr) : undefined,
+    flags: flags ?? undefined,
+  };
 }
