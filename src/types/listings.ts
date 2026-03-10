@@ -18,6 +18,7 @@ export interface ListingSummary {
   price_per_request: number;
   is_active: boolean;
   categories: string[];
+  /** Whether seller has opted into Shield request scanning. */
   shield_enabled?: boolean;
   created_at: string;
   updated_at: string;
@@ -56,6 +57,7 @@ export interface ListingRow {
   description: string | null;
   created_at: string;
   updated_at: string;
+  /** Whether seller has opted into Shield request scanning. */
   shield_enabled?: boolean;
   service_catalog: { slug: string; name: string; base_url: string } | null;
   [key: string]: unknown;
@@ -90,7 +92,7 @@ export interface CreateListingOptions {
   endpoints?: EndpointSpec[];
   category_slugs: string[];
   validation_endpoint?: string;
-  /** Enable Shield scanning on this listing. */
+  /** Enable Shield request scanning on this listing (protects your API from malicious input). */
   shield_enabled?: boolean;
 }
 
@@ -113,7 +115,7 @@ export interface UpdateListingOptions {
   endpoints?: EndpointSpec[];
   category_slugs?: string[];
   upstream_headers?: Record<string, string>;
-  /** Enable Shield scanning on this listing (protects buyers + sellers). */
+  /** Enable Shield request scanning on this listing (protects your API from malicious input). */
   shield_enabled?: boolean;
 }
 
