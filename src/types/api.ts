@@ -113,6 +113,8 @@ export interface SellerProfileResponse {
   member_since: string;
   avg_rating: number;
   total_ratings: number;
+  verification_status?: string;
+  is_verified?: boolean;
 }
 
 /** Single API listing detail (returned by api()). */
@@ -136,6 +138,8 @@ export interface ApiListingDetail {
   category_slugs?: string[];
   endpoints: EndpointSpec[];
   has_docs?: boolean;
+  is_verified: boolean;
+  avg_rating_percent?: number;
 }
 
 /** GET /v1/apis/:listingId/docs response. */
@@ -181,6 +185,8 @@ export interface ApisQueryOptions {
   sort?: 'price_asc' | 'price_desc' | 'popular' | 'newest';
   /** Text search query. */
   q?: string;
+  /** Filter for verified sellers only. */
+  verified?: boolean;
 }
 
 /** POST /v1/withdraw options. */
