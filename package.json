@@ -1,7 +1,7 @@
 {
   "name": "@proxygate/sdk",
   "version": "0.3.0",
-  "description": "ProxyGate SDK — typed client for the ProxyGate API marketplace. Buy access to AI APIs with USDC on Solana.",
+  "description": "ProxyGate SDK — typed client for the ProxyGate agent marketplace. Buy APIs, sell capacity, tunnel agents, and post jobs. USDC on Solana.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
