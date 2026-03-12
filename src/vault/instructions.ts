@@ -97,7 +97,7 @@ export async function buildAndSendDeposit(
   const buyerKeypair = Keypair.fromSecretKey(secretKey);
   const buyerPubkey = buyerKeypair.publicKey;
   const programId = new PublicKey(VAULT_CONSTANTS.PROGRAM_ID);
-  const usdcMint = new PublicKey(VAULT_CONSTANTS.USDC_MINT_DEVNET);
+  const usdcMint = new PublicKey(VAULT_CONSTANTS.USDC_MINT);
   const tokenProgramId = new PublicKey(VAULT_CONSTANTS.TOKEN_PROGRAM_ID);
   const associatedTokenProgramId = new PublicKey(
     VAULT_CONSTANTS.ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -105,6 +105,10 @@ export async function buildAndSendDeposit(
   const systemProgramId = new PublicKey(VAULT_CONSTANTS.SYSTEM_PROGRAM_ID);
 
   // Derive PDAs
+  const [configPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from(VAULT_CONSTANTS.CONFIG_SEED)],
+    programId,
+  );
   const [vaultPda] = PublicKey.findProgramAddressSync(
     [Buffer.from('vault'), buyerPubkey.toBuffer()],
     programId,
@@ -128,6 +132,7 @@ export async function buildAndSendDeposit(
   const depositIx = new TransactionInstruction({
     programId,
     keys: [
+      { pubkey: configPda, isSigner: false, isWritable: false },
       { pubkey: buyerPubkey, isSigner: true, isWritable: true },
       { pubkey: vaultPda, isSigner: false, isWritable: true },
       { pubkey: vaultTokenPda, isSigner: false, isWritable: true },

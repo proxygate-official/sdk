@@ -432,13 +432,13 @@ describe('vault.verifyReceipts()', () => {
 describe('VAULT_CONSTANTS', () => {
   it('has correct program ID', () => {
     expect(VAULT_CONSTANTS.PROGRAM_ID).toBe(
-      '2KMNnDz1gog5CWgKvuHHXM4fCHRM8bdD2qaaNNitpC2W',
+      '7fe3uMMqrJjqmTy5rB4CVn1pvNxH6z5Snh8ULa3cQXmo',
     );
   });
 
   it('has correct USDC mint (devnet)', () => {
-    expect(VAULT_CONSTANTS.USDC_MINT_DEVNET).toBe(
-      'FED9q6ZxwjiwHtQ3Rc3CJgpFqiME9txNgNbEdLLs3q2H',
+    expect(VAULT_CONSTANTS.USDC_MINT).toBe(
+      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
     );
   });
 

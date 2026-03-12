@@ -1,10 +1,11 @@
 /** Well-known vault program and token addresses (devnet). */
 export const VAULT_CONSTANTS = {
-  PROGRAM_ID: '2KMNnDz1gog5CWgKvuHHXM4fCHRM8bdD2qaaNNitpC2W',
-  USDC_MINT_DEVNET: 'FED9q6ZxwjiwHtQ3Rc3CJgpFqiME9txNgNbEdLLs3q2H',
+  PROGRAM_ID: '7fe3uMMqrJjqmTy5rB4CVn1pvNxH6z5Snh8ULa3cQXmo',
+  USDC_MINT: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
   TOKEN_PROGRAM_ID: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   ASSOCIATED_TOKEN_PROGRAM_ID: 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
   SYSTEM_PROGRAM_ID: '11111111111111111111111111111111',
+  CONFIG_SEED: 'config',
 } as const;
 
 /**
