@@ -106,6 +106,7 @@ export type {
   SubmitJobOptions,
   SubmitJobResponse,
   AcceptJobResponse,
+  RejectJobOptions,
   RejectJobResponse,
   CancelJobResponse,
 } from './types/jobs.js';

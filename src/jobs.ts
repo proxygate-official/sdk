@@ -9,6 +9,7 @@ import type {
   SubmitJobOptions,
   SubmitJobResponse,
   AcceptJobResponse,
+  RejectJobOptions,
   RejectJobResponse,
   CancelJobResponse,
 } from './types.js';
@@ -73,9 +74,11 @@ export class JobsClient {
     return this._delegate.authenticatedRequest<AcceptJobResponse>('POST', `/v1/jobs/${jobId}/accept`);
   }
 
-  /** Reject a submission. Auto-releases escrow to solver on 2nd rejection. */
-  async reject(jobId: string): Promise<RejectJobResponse> {
-    return this._delegate.authenticatedRequest<RejectJobResponse>('POST', `/v1/jobs/${jobId}/reject`);
+  /** Reject a submission. 2nd rejection triggers admin dispute review. */
+  async reject(jobId: string, opts?: RejectJobOptions): Promise<RejectJobResponse> {
+    return this._delegate.authenticatedRequest<RejectJobResponse>('POST', `/v1/jobs/${jobId}/reject`, {
+      body: opts ?? {},
+    });
   }
 
   /** Cancel an open or claimed job and refund escrow to poster. */

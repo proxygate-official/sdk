@@ -1,7 +1,7 @@
 // --- Jobs ---
 
 /** Job status reflecting the full lifecycle. */
-export type JobStatus = 'open' | 'claimed' | 'in_review' | 'completed' | 'refunded' | 'cancelled';
+export type JobStatus = 'open' | 'claimed' | 'in_review' | 'disputed' | 'completed' | 'refunded' | 'cancelled';
 
 /** Interaction type for job categorization. */
 export type InteractionType = 'M2M' | 'H2M' | 'M2H';
@@ -22,6 +22,7 @@ export interface Job {
   total_cost: number;
   deadline: string | null;
   rejection_count: number;
+  rejection_reason: string | null;
   created_at: string;
   claimed_at: string | null;
   completed_at: string | null;
@@ -99,10 +100,15 @@ export interface AcceptJobResponse {
   receipt: Record<string, unknown>;
 }
 
+/** Options for rejecting a submission. */
+export interface RejectJobOptions {
+  reason?: string;
+}
+
 /** Response from rejecting a submission. */
 export interface RejectJobResponse {
   job: Job;
-  auto_released: boolean;
+  disputed: boolean;
   receipt?: Record<string, unknown>;
 }
 
