@@ -19,6 +19,10 @@ export { ProxyGate } from './proxygate.js';
 // Auth (existing)
 export { signRequest } from './auth.js';
 
+// Keypair & Base58 utilities
+export { parseKeypairBytes } from './keypair.js';
+export { encodeBase58, decodeBase58 } from './base58.js';
+
 // Shield
 export { parseShieldInfo } from './client/proxy-methods.js';
 
