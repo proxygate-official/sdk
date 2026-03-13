@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { NoncePool } from './nonce-pool.js';
 import { encodeBase58 } from './base58.js';
+import { parseKeypairBytes } from './keypair.js';
 import { VaultClient } from './vault.js';
 import { ListingsClient } from './listings.js';
 import { JobsClient } from './jobs.js';
@@ -49,11 +50,7 @@ export class ProxyGateClient {
     if (resolvedPath.startsWith('~')) resolvedPath = resolvedPath.replace(/^~/, homedir());
     resolvedPath = resolve(resolvedPath);
     const raw = await readFile(resolvedPath, 'utf-8');
-    const keyArray: unknown = JSON.parse(raw);
-    if (!Array.isArray(keyArray) || keyArray.length !== 64 || !keyArray.every((n) => typeof n === 'number')) {
-      throw new Error(`Invalid keypair file: expected a JSON array of 64 numbers, got ${Array.isArray(keyArray) ? `array of ${keyArray.length}` : typeof keyArray}`);
-    }
-    const secretKey = Uint8Array.from(keyArray as number[]);
+    const secretKey = parseKeypairBytes(raw);
     const publicKey = nacl.sign.keyPair.fromSecretKey(secretKey).publicKey;
     return new ProxyGateClient({ gatewayUrl: opts.gatewayUrl, walletAddress: encodeBase58(publicKey), secretKey });
   }

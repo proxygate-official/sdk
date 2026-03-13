@@ -147,7 +147,7 @@ describe('ProxyGateClient', () => {
           gatewayUrl: testGatewayUrl,
           keypairPath: '/tmp/bad-keypair.json',
         }),
-      ).rejects.toThrow('Invalid keypair');
+      ).rejects.toThrow('Expected 32 or 64');
     });
 
     it('throws on invalid JSON in keypair file', async () => {
