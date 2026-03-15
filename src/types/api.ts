@@ -117,6 +117,15 @@ export interface SellerProfileResponse {
   is_verified?: boolean;
 }
 
+/** Per-endpoint pricing override. */
+export interface EndpointPriceOverride {
+  path: string;
+  pricing_unit: 'per_request' | 'per_token';
+  price_per_request?: number;
+  price_per_input_token?: number;
+  price_per_output_token?: number;
+}
+
 /** Single API listing detail (returned by api()). */
 export interface ApiListingDetail {
   listing_id: string;
@@ -137,6 +146,7 @@ export interface ApiListingDetail {
   member_since: string;
   category_slugs?: string[];
   endpoints: EndpointSpec[];
+  endpoint_prices?: EndpointPriceOverride[];
   has_docs?: boolean;
   is_verified: boolean;
   avg_rating_percent?: number;
