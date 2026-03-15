@@ -38,6 +38,20 @@ export type {
   CategorySubcategory,
   CategoryEntry,
   CategoriesResponse,
+  ListingType,
+  SkillMetadata,
+  ProductMetadata,
+  DatasetMetadata,
+  ServiceMetadata,
+  ConnectorMetadata,
+} from './types/api.js';
+
+export {
+  isSkillListing,
+  isProductListing,
+  isDatasetListing,
+  isServiceListing,
+  isConnectorListing,
 } from './types/api.js';
 
 export type {

@@ -126,6 +126,41 @@ export interface EndpointPriceOverride {
   price_per_output_token?: number;
 }
 
+/** All supported listing types. */
+export type ListingType = 'proxy' | 'tunnel' | 'skill' | 'product' | 'dataset' | 'service' | 'connector';
+
+/** Skill listing metadata. */
+export interface SkillMetadata { endpoint_url: string; }
+/** Product listing metadata. */
+export interface ProductMetadata { storage_type: string; file_url: string; file_name: string; mime_type: string; expiry_seconds: number; max_downloads: number; }
+/** Dataset listing metadata. */
+export interface DatasetMetadata { delivery_type: string; bulk_url: string; data_format: string; record_count: number; }
+/** Service listing metadata. */
+export interface ServiceMetadata { webhook_url: string; relay_method: string; timeout_ms: number; }
+/** Connector listing metadata. */
+export interface ConnectorMetadata { platform: string; relay_url: string; }
+
+/** Type guard: is this a skill listing? */
+export function isSkillListing(l: ApiListingDetail): l is ApiListingDetail & { type_metadata: SkillMetadata } {
+  return l.listing_type === 'skill';
+}
+/** Type guard: is this a product listing? */
+export function isProductListing(l: ApiListingDetail): l is ApiListingDetail & { type_metadata: ProductMetadata } {
+  return l.listing_type === 'product';
+}
+/** Type guard: is this a dataset listing? */
+export function isDatasetListing(l: ApiListingDetail): l is ApiListingDetail & { type_metadata: DatasetMetadata } {
+  return l.listing_type === 'dataset';
+}
+/** Type guard: is this a service listing? */
+export function isServiceListing(l: ApiListingDetail): l is ApiListingDetail & { type_metadata: ServiceMetadata } {
+  return l.listing_type === 'service';
+}
+/** Type guard: is this a connector listing? */
+export function isConnectorListing(l: ApiListingDetail): l is ApiListingDetail & { type_metadata: ConnectorMetadata } {
+  return l.listing_type === 'connector';
+}
+
 /** Single API listing detail (returned by api()). */
 export interface ApiListingDetail {
   listing_id: string;
@@ -150,6 +185,10 @@ export interface ApiListingDetail {
   has_docs?: boolean;
   is_verified: boolean;
   avg_rating_percent?: number;
+  /** Listing type. Defaults to 'proxy' for backward compat. */
+  listing_type?: ListingType;
+  /** Type-specific metadata. */
+  type_metadata?: Record<string, unknown>;
 }
 
 /** GET /v1/apis/:listingId/docs response. */
@@ -197,6 +236,8 @@ export interface ApisQueryOptions {
   q?: string;
   /** Filter for verified sellers only. */
   verified?: boolean;
+  /** Filter by listing type (e.g. 'skill', 'product'). */
+  type?: ListingType;
 }
 
 /** POST /v1/withdraw options. */
