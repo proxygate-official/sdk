@@ -11,6 +11,8 @@ import type {
   DeleteListingResponse,
   RotateKeyOptions,
   RotateKeyResponse,
+  UploadDocsOptions,
+  UploadDocsResponse,
 } from './types.js';
 
 /**
@@ -88,6 +90,15 @@ export class ListingsClient {
     return this._delegate.authenticatedRequest<RotateKeyResponse>(
       'POST',
       `/v1/listings/${id}/rotate-key`,
+      { body: opts },
+    );
+  }
+
+  /** Upload or replace documentation (OpenAPI spec or markdown) for a listing. */
+  async uploadDocs(id: string, opts: UploadDocsOptions): Promise<UploadDocsResponse> {
+    return this._delegate.authenticatedRequest<UploadDocsResponse>(
+      'POST',
+      `/v1/listings/${id}/docs`,
       { body: opts },
     );
   }

@@ -83,6 +83,8 @@ export type {
   DeleteListingResponse,
   RotateKeyOptions,
   RotateKeyResponse,
+  UploadDocsOptions,
+  UploadDocsResponse,
 } from './types/listings.js';
 
 export type {

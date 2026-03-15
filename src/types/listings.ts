@@ -1,7 +1,7 @@
 import type { EndpointSpec } from './api.js';
 
 /** Auth pattern for API key injection. */
-export type ListingAuthPattern = 'bearer' | 'header' | 'query' | 'basic' | 'oauth2_cc';
+export type ListingAuthPattern = 'none' | 'bearer' | 'header' | 'query' | 'basic' | 'oauth2_cc';
 
 /** Summary listing returned by list endpoint. */
 export interface ListingSummary {
@@ -154,4 +154,17 @@ export interface RotateKeyOptions {
 export interface RotateKeyResponse {
   rotated: true;
   key_masked: string;
+}
+
+/** Options for uploading listing documentation. */
+export interface UploadDocsOptions {
+  doc_type: 'openapi' | 'markdown';
+  content: string;
+}
+
+/** Response from docs upload endpoint. */
+export interface UploadDocsResponse {
+  uploaded: true;
+  listing_id: string;
+  doc_type: 'openapi' | 'markdown';
 }

@@ -26,6 +26,9 @@ export { encodeBase58, decodeBase58 } from './base58.js';
 // Shield
 export { parseShieldInfo } from './client/proxy-methods.js';
 
+// Pricing constants (platform-enforced, read-only)
+export { SHIELD_SURCHARGE_DISPLAY, SHIELD_SURCHARGE_MICRO_CENTS, PLATFORM_FEE_BPS } from './pricing/constants.js';
+
 // Streaming
 export { parseSSE } from './stream.js';
 
@@ -116,4 +119,6 @@ export type {
   AcceptJobResponse,
   RejectJobResponse,
   CancelJobResponse,
+  UploadDocsOptions,
+  UploadDocsResponse,
 } from './types.js';
