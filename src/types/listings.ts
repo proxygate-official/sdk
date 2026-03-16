@@ -20,6 +20,8 @@ export interface ListingSummary {
   categories: string[];
   /** Whether seller has opted into Shield request scanning. */
   shield_enabled?: boolean;
+  listing_type?: 'proxy' | 'tunnel' | 'skill' | 'product' | 'dataset' | 'service' | 'connector';
+  type_metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -59,6 +61,8 @@ export interface ListingRow {
   updated_at: string;
   /** Whether seller has opted into Shield request scanning. */
   shield_enabled?: boolean;
+  listing_type?: string;
+  type_metadata?: Record<string, unknown>;
   service_catalog: { slug: string; name: string; base_url: string } | null;
   [key: string]: unknown;
 }
@@ -94,6 +98,10 @@ export interface CreateListingOptions {
   validation_endpoint?: string;
   /** Enable Shield request scanning on this listing (protects your API from malicious input). */
   shield_enabled?: boolean;
+  /** Listing type. Defaults to 'proxy'. Tunnel excluded (use WebSocket upsert). */
+  listing_type?: 'proxy' | 'skill' | 'product' | 'dataset' | 'service' | 'connector';
+  /** Type-specific metadata (e.g. endpoint_url for skill, file_url for product). */
+  type_metadata?: Record<string, unknown>;
 }
 
 /** Response from create endpoint. */
