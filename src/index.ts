@@ -121,4 +121,5 @@ export type {
   CancelJobResponse,
   UploadDocsOptions,
   UploadDocsResponse,
+  ListingType,
 } from './types.js';
