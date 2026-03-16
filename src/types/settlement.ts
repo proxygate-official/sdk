@@ -55,6 +55,12 @@ export interface SettlementsResponse {
   has_more: boolean;
   summary: SettlementSummary;
   payouts?: SettlementPayout[];
+  /** Total unsettled earnings in USDC (seller only). */
+  pending_payout_usdc?: number;
+  /** Whether the seller has a USDC token account (seller only). */
+  ata_status?: 'active' | 'missing' | 'unknown';
+  /** Instruction to create ATA when missing (seller only). */
+  ata_action?: string;
 }
 
 /** GET /v1/settlement/history query options. */

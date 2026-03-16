@@ -5,6 +5,10 @@ export interface VaultBalanceResponse {
   available: number;
   in_cooldown: boolean;
   currency: string;
+  /** Total unsettled seller earnings in USDC (seller wallets only). */
+  pending_payout_usdc?: number;
+  /** Whether the wallet has a USDC token account (seller wallets only). */
+  ata_status?: 'active' | 'missing' | 'unknown';
 }
 
 /** POST /v1/deposit/confirm response */
