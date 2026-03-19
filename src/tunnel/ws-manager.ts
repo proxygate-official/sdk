@@ -35,5 +35,10 @@ export async function getAuthHeaders(
   };
 }
 
+/** Get auth headers for WebSocket upgrade using API key bearer token. */
+export function getBearerHeaders(apiKey: string): Record<string, string> {
+  return { authorization: `Bearer ${apiKey}` };
+}
+
 /** Reconnect delay in milliseconds. */
 export const RECONNECT_DELAY_MS = 5_000;

@@ -15,6 +15,7 @@ import type {
 import {
   buildWsUrl,
   getAuthHeaders,
+  getBearerHeaders,
   RECONNECT_DELAY_MS,
 } from './tunnel/ws-manager.js';
 
@@ -58,7 +59,11 @@ async function loadDocsFiles(
  * registering local services and forwarding proxied requests to localhost.
  */
 export function createTunnelClient(options: TunnelOptions): TunnelClient {
-  const { gatewayUrl, walletAddress, secretKey, services } = options;
+  const { gatewayUrl, services } = options;
+
+  if (!options.apiKey && (!options.walletAddress || !options.secretKey)) {
+    throw new Error('Tunnel requires either apiKey or walletAddress + secretKey');
+  }
 
   let ws: WebSocket | null = null;
   let connected = false;
@@ -84,16 +89,33 @@ export function createTunnelClient(options: TunnelOptions): TunnelClient {
   }
 
   async function connectInternal(): Promise<TunnelRegisteredListing[]> {
-    const authHeaders = await getAuthHeaders(gatewayUrl, walletAddress, secretKey);
     const wsUrl = buildWsUrl(gatewayUrl);
+
+    // Phase 49: choose auth strategy — bearer API key or wallet-sig
+    let authHeaders: Record<string, string>;
+    if (options.apiKey) {
+      authHeaders = getBearerHeaders(options.apiKey);
+    } else {
+      authHeaders = await getAuthHeaders(gatewayUrl, options.walletAddress!, options.secretKey!);
+    }
 
     return new Promise<TunnelRegisteredListing[]>((resolve, reject) => {
       try {
-        const urlWithAuth = new URL(wsUrl);
-        urlWithAuth.searchParams.set('x-wallet', authHeaders['x-wallet']);
-        urlWithAuth.searchParams.set('x-nonce', authHeaders['x-nonce']);
-        urlWithAuth.searchParams.set('x-signature', authHeaders['x-signature']);
-        ws = new WebSocket(urlWithAuth.toString());
+        if (options.apiKey) {
+          // Bearer auth: pass as protocol header (server-side WebSocket supports headers)
+          // Use subprotocol trick for environments that don't support custom headers,
+          // but prefer the standard approach for Node.js/Bun
+          const urlObj = new URL(wsUrl);
+          urlObj.searchParams.set('authorization', `Bearer ${options.apiKey}`);
+          ws = new WebSocket(urlObj.toString());
+        } else {
+          // Wallet-sig auth: pass credentials as query params
+          const urlWithAuth = new URL(wsUrl);
+          urlWithAuth.searchParams.set('x-wallet', authHeaders['x-wallet']);
+          urlWithAuth.searchParams.set('x-nonce', authHeaders['x-nonce']);
+          urlWithAuth.searchParams.set('x-signature', authHeaders['x-signature']);
+          ws = new WebSocket(urlWithAuth.toString());
+        }
       } catch (err) {
         reject(err instanceof Error ? err : new Error(String(err)));
         return;

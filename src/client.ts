@@ -104,22 +104,23 @@ export class ProxyGateClient {
 
   /**
    * Expose local services to the ProxyGate network via WebSocket tunnel.
-   * Requires keypair auth (wallet-sig needed for tunnel authentication).
+   * Accepts either API key (bearer auth) or keypair (wallet-sig) for tunnel authentication.
    */
   async serve(
     services: TunnelServiceConfig[],
     options?: ServeOptions,
   ): Promise<TunnelClient> {
-    if (!this._secretKey) {
+    if (!this._apiKey && !this._secretKey) {
       throw new ProxyGateError(
-        { error: 'keypair_required', message: 'Tunnel requires a keypair. Provide walletAddress + secretKey alongside apiKey for hybrid auth.' },
+        { error: 'auth_required', message: 'Tunnel requires either apiKey or walletAddress + secretKey.' },
         0,
       );
     }
 
     const tunnel = createTunnelClient({
       gatewayUrl: this.gatewayUrl,
-      walletAddress: this.walletAddress,
+      apiKey: this._apiKey,
+      walletAddress: this.walletAddress || undefined,
       secretKey: this._secretKey,
       services,
       onConnected: options?.onConnected,

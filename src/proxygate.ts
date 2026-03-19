@@ -24,10 +24,23 @@ export class ProxyGate {
    * Creates a client, connects the tunnel, and starts forwarding requests.
    */
   static async serve(options: ProxyGateServeOptions): Promise<TunnelClient> {
-    const client = await ProxyGateClient.create({
-      gatewayUrl: options.gatewayUrl ?? DEFAULT_GATEWAY_URL,
-      keypairPath: options.keypair,
-    });
+    let client: ProxyGateClient;
+
+    if (options.apiKey) {
+      // API key auth — no keypair needed
+      client = new ProxyGateClient({
+        gatewayUrl: options.gatewayUrl ?? DEFAULT_GATEWAY_URL,
+        apiKey: options.apiKey,
+      });
+    } else if (options.keypair) {
+      // Wallet-sig auth via keypair file
+      client = await ProxyGateClient.create({
+        gatewayUrl: options.gatewayUrl ?? DEFAULT_GATEWAY_URL,
+        keypairPath: options.keypair,
+      });
+    } else {
+      throw new Error('ProxyGate.serve() requires either keypair or apiKey');
+    }
 
     return client.serve(options.services, {
       onConnected: options.onConnected,

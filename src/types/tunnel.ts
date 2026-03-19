@@ -17,11 +17,13 @@ export interface TunnelServiceConfig {
   docs?: string;
 }
 
-/** Options for creating a tunnel client. */
+/** Options for creating a tunnel client. Provide either apiKey OR walletAddress+secretKey. */
 export interface TunnelOptions {
   gatewayUrl: string;
-  walletAddress: string;
-  secretKey: Uint8Array;
+  /** API key for bearer auth (Phase 49). Alternative to walletAddress+secretKey. */
+  apiKey?: string;
+  walletAddress?: string;
+  secretKey?: Uint8Array;
   services: TunnelServiceConfig[];
   onConnected?: (listings: TunnelRegisteredListing[]) => void;
   onDisconnected?: (reason: string) => void;
@@ -57,12 +59,14 @@ export interface ServeOptions {
   onRequest?: (requestId: string, service: string, path: string) => void;
 }
 
-/** Options for the static ProxyGate.serve() one-liner. */
+/** Options for the static ProxyGate.serve() one-liner. Provide keypair OR apiKey. */
 export interface ProxyGateServeOptions extends ServeOptions {
   /** Gateway URL (default: https://gateway.proxygate.ai). */
   gatewayUrl?: string;
-  /** Path to Solana keypair JSON file. */
-  keypair: string;
+  /** Path to Solana keypair JSON file. Required for wallet-sig auth. */
+  keypair?: string;
+  /** API key for bearer auth (Phase 49). Alternative to keypair. */
+  apiKey?: string;
   /** Services to expose. */
   services: TunnelServiceConfig[];
 }
