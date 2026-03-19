@@ -890,6 +890,218 @@ describe('ProxyGateClient', () => {
   });
 
   // -------------------------------------------------------------------------
+  // API key auth tests
+  // -------------------------------------------------------------------------
+
+  describe('apiKey auth', () => {
+    const TEST_API_KEY = 'pg_live_test_key_1234567890';
+
+    function createApiKeyClient(): ProxyGateClient {
+      return new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        apiKey: TEST_API_KEY,
+      });
+    }
+
+    it('creates client with apiKey only (no walletAddress or secretKey)', () => {
+      const client = createApiKeyClient();
+      expect(client.gatewayUrl).toBe(testGatewayUrl);
+      expect(client.walletAddress).toBe('');
+    });
+
+    it('sends Bearer header for balance()', async () => {
+      const balanceData = { balance: 1000, pending_settlement: 0, available: 1000, in_cooldown: false, currency: 'lamports' };
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        return new Response(JSON.stringify(balanceData));
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createApiKeyClient();
+      await client.balance();
+
+      const balanceCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/v1/balance'),
+      );
+      expect(balanceCall).toBeTruthy();
+      const init = balanceCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['authorization']).toBe(`Bearer ${TEST_API_KEY}`);
+      // No wallet-sig headers
+      expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
+      expect((init.headers as Record<string, string>)['x-nonce']).toBeUndefined();
+    });
+
+    it('sends Bearer header for proxy()', async () => {
+      const LISTING_ID = 'listing-apikey-001';
+      const LISTING_DATA = {
+        listing_id: LISTING_ID,
+        seller_wallet: 'Sell...1234',
+        service: 'openai',
+        service_name: 'OpenAI',
+        auth_pattern: 'bearer',
+        pricing_unit: 'per_request',
+        price_per_request_usdc: 0.002,
+        price_per_input_token_usdc: null,
+        price_per_output_token_usdc: null,
+        available_rpm: 100,
+        uptime_percent: 0.99,
+        avg_latency_ms: 150,
+        trust_score: 0.5,
+        badges: [],
+        is_available: true,
+        member_since: '2026-01-01',
+      };
+
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/v1/apis')) {
+          return new Response(JSON.stringify({ data: [LISTING_DATA] }));
+        }
+        return new Response(JSON.stringify({ ok: true }));
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createApiKeyClient();
+      await client.proxy(LISTING_ID, '/v1/chat/completions', { model: 'gpt-4' });
+
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      expect(proxyCall).toBeTruthy();
+      const init = proxyCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['authorization']).toBe(`Bearer ${TEST_API_KEY}`);
+      expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
+    });
+
+    it('does not fetch nonces in apiKey-only mode', async () => {
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        return new Response(JSON.stringify({ balance: 100 }));
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createApiKeyClient();
+      await client.balance();
+
+      const nonceCalls = mockFetch.mock.calls.filter(
+        (call: unknown[]) => (call[0] as string).includes('/v1/nonce'),
+      );
+      expect(nonceCalls.length).toBe(0);
+    });
+
+    it('throws on invalid apiKey format', () => {
+      expect(() => new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        apiKey: 'bad_key_format',
+      })).toThrow('API key must start with pg_live_');
+    });
+
+    it('throws on apiKey too short', () => {
+      expect(() => new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        apiKey: 'pg_live_x',
+      })).toThrow('at least 20 characters');
+    });
+
+    it('throws when no auth provided', () => {
+      expect(() => new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+      })).toThrow('Provide either apiKey or walletAddress + secretKey');
+    });
+
+    it('vault.deposit() throws in apiKey-only mode', async () => {
+      const client = createApiKeyClient();
+      await expect(client.vault.deposit({ amount: 1000, rpcUrl: 'https://api.devnet.solana.com' }))
+        .rejects.toThrow('Deposit requires a keypair');
+    });
+
+    it('vault.withdraw() throws in apiKey-only mode', async () => {
+      const client = createApiKeyClient();
+      await expect(client.vault.withdraw())
+        .rejects.toThrow('Withdraw requires a keypair');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Dual-mode auth tests
+  // -------------------------------------------------------------------------
+
+  describe('dual-mode auth', () => {
+    const TEST_API_KEY = 'pg_live_test_key_1234567890';
+
+    function createDualClient(): ProxyGateClient {
+      return new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        apiKey: TEST_API_KEY,
+        walletAddress: 'TestWallet',
+        secretKey: testKeypair.secretKey,
+      });
+    }
+
+    it('uses Bearer for balance()', async () => {
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        return new Response(JSON.stringify({ balance: 100 }));
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createDualClient();
+      await client.balance();
+
+      const balanceCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/v1/balance'),
+      );
+      expect(balanceCall).toBeTruthy();
+      const init = balanceCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['authorization']).toBe(`Bearer ${TEST_API_KEY}`);
+      expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
+    });
+
+    it('uses Bearer for proxy()', async () => {
+      const LISTING_DATA = {
+        listing_id: 'listing-dual-001',
+        seller_wallet: 'Sell...1234',
+        service: 'openai',
+        service_name: 'OpenAI',
+        auth_pattern: 'bearer',
+        pricing_unit: 'per_request',
+        price_per_request_usdc: 0.002,
+        price_per_input_token_usdc: null,
+        price_per_output_token_usdc: null,
+        available_rpm: 100,
+        uptime_percent: 0.99,
+        avg_latency_ms: 150,
+        trust_score: 0.5,
+        badges: [],
+        is_available: true,
+        member_since: '2026-01-01',
+      };
+
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/v1/apis')) {
+          return new Response(JSON.stringify({ data: [LISTING_DATA] }));
+        }
+        return new Response(JSON.stringify({ ok: true }));
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createDualClient();
+      await client.proxy('listing-dual-001', '/v1/test', { data: 1 });
+
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      const init = proxyCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['authorization']).toBe(`Bearer ${TEST_API_KEY}`);
+      expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
+    });
+
+    it('has secretKey available for vault operations', () => {
+      const client = createDualClient();
+      expect(client.walletAddress).toBe('TestWallet');
+      // Vault delegate should have secretKey
+      const delegate = client._vaultDelegate();
+      expect(delegate.secretKey).toBeDefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // ProxyGateError class tests
   // -------------------------------------------------------------------------
 
