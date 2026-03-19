@@ -2,6 +2,7 @@ import nacl from 'tweetnacl';
 import { decodeBase58 } from './base58.js';
 import { base64ToBytes, buildAndSendDeposit } from './vault/instructions.js';
 import { executeWithdraw, withdrawConfirm as withdrawConfirmFn } from './vault/withdraw.js';
+import { ProxyGateError } from './client/helpers.js';
 import type {
   VaultDelegate,
   VaultBalanceResponse,
@@ -60,6 +61,12 @@ export class VaultClient {
   }
 
   async deposit(opts: VaultDepositOptions): Promise<VaultDepositResponse> {
+    if (!this._delegate.secretKey) {
+      throw new ProxyGateError(
+        { error: 'keypair_required', message: 'Deposit requires a keypair. Provide walletAddress + secretKey alongside apiKey for hybrid auth.' },
+        0,
+      );
+    }
     if (opts.amount <= 0) throw new Error('Deposit amount must be greater than zero');
     const txSignature = await buildAndSendDeposit(opts, this._delegate.secretKey);
     return this._delegate.authenticatedRequest<VaultDepositResponse>(
@@ -70,6 +77,12 @@ export class VaultClient {
   }
 
   async withdraw(opts?: VaultWithdrawOptions): Promise<VaultWithdrawCompleteResponse> {
+    if (!this._delegate.secretKey) {
+      throw new ProxyGateError(
+        { error: 'keypair_required', message: 'Withdraw requires a keypair. Provide walletAddress + secretKey alongside apiKey for hybrid auth.' },
+        0,
+      );
+    }
     return executeWithdraw(this._delegate, opts);
   }
 

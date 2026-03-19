@@ -100,7 +100,7 @@ export async function executeWithdraw(
 
   const rpcUrl = opts?.rpcUrl ?? 'https://api.devnet.solana.com';
   const connection = new Connection(rpcUrl, 'confirmed');
-  const buyerKeypair = Keypair.fromSecretKey(delegate.secretKey);
+  const buyerKeypair = Keypair.fromSecretKey(delegate.secretKey!);
 
   const txBuffer = base64ToBytes(signResponse.transaction);
   const tx = Transaction.from(Buffer.from(txBuffer));
