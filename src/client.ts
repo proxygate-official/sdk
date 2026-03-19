@@ -11,7 +11,7 @@ import { JobsClient } from './jobs.js';
 import { createTunnelClient } from './tunnel.js';
 import {
   ProxyGateError, bufferToBase64, buildQuery,
-  buildUrl, authenticatedRequest, publicRequest,
+  buildUrl, authenticatedRequest, bearerRequest, publicRequest,
 } from './client/helpers.js';
 import * as apiMethods from './client/api-methods.js';
 import type { ApiMethodDeps } from './client/api-methods.js';
@@ -30,19 +30,46 @@ export { ProxyGateError } from './client/helpers.js';
 /**
  * Typed client for the ProxyGate API marketplace.
  * Provides methods for all v1 gateway endpoints and listing-centric proxy.
+ *
+ * Supports three auth modes:
+ * - **API key only**: `{ gatewayUrl, apiKey }` — Bearer auth for all requests
+ * - **Keypair only**: `{ gatewayUrl, walletAddress, secretKey }` — wallet-sig auth (existing)
+ * - **Dual mode**: `{ gatewayUrl, apiKey, walletAddress, secretKey }` — Bearer for proxy/reads, keypair for vault ops
  */
 export class ProxyGateClient {
   readonly gatewayUrl: string;
   readonly walletAddress: string;
-  private readonly _secretKey: Uint8Array;
-  private readonly _noncePool: NoncePool;
+  private readonly _apiKey?: string;
+  private readonly _secretKey?: Uint8Array;
+  private readonly _noncePool?: NoncePool;
   private _listingCache = new Map<string, { service: string }>();
 
   constructor(opts: ProxyGateClientOptions) {
+    // Validate at least one auth method
+    if (!opts.apiKey && (!opts.walletAddress || !opts.secretKey)) {
+      throw new ProxyGateError(
+        { error: 'invalid_config', message: 'Provide either apiKey or walletAddress + secretKey. Get a key: app.proxygate.ai/keys' },
+        0,
+      );
+    }
+
+    // Validate apiKey format
+    if (opts.apiKey && (!opts.apiKey.startsWith('pg_live_') || opts.apiKey.length < 20)) {
+      throw new ProxyGateError(
+        { error: 'invalid_api_key', message: 'API key must start with pg_live_ and be at least 20 characters. Get a key: app.proxygate.ai/keys' },
+        0,
+      );
+    }
+
     this.gatewayUrl = opts.gatewayUrl.replace(/\/+$/, '');
-    this.walletAddress = opts.walletAddress;
+    this.walletAddress = opts.walletAddress ?? '';
+    this._apiKey = opts.apiKey;
     this._secretKey = opts.secretKey;
-    this._noncePool = new NoncePool({ gatewayUrl: this.gatewayUrl, walletAddress: this.walletAddress });
+
+    // Only create nonce pool when keypair auth is available
+    if (opts.walletAddress && opts.secretKey) {
+      this._noncePool = new NoncePool({ gatewayUrl: this.gatewayUrl, walletAddress: this.walletAddress });
+    }
   }
 
   static async create(opts: CreateClientOptions): Promise<ProxyGateClient> {
@@ -57,7 +84,7 @@ export class ProxyGateClient {
 
   async proxy(listingId: string, path: string, body?: unknown, options?: ProxyOptions): Promise<Response> {
     return proxyRequest(
-      { gatewayUrl: this.gatewayUrl, signWithNonce: () => this._signWithNonce(), buildUrl: (p, q) => buildUrl(this.gatewayUrl, p, q), fetchApi: (id) => this.api(id) },
+      { gatewayUrl: this.gatewayUrl, getAuthHeaders: () => this._getAuthHeaders(), buildUrl: (p, q) => buildUrl(this.gatewayUrl, p, q), fetchApi: (id) => this.api(id) },
       this._listingCache, listingId, path, body, options,
     );
   }
@@ -77,26 +104,19 @@ export class ProxyGateClient {
 
   /**
    * Expose local services to the ProxyGate network via WebSocket tunnel.
-   * Handles authentication, heartbeat, reconnection, request forwarding,
-   * and docs upload automatically.
-   *
-   * @param services - Services to expose (name, port, optional docs path)
-   * @param options - Event callbacks
-   * @returns Connected TunnelClient
-   *
-   * @example
-   * ```ts
-   * const tunnel = await client.serve([
-   *   { name: 'code-review', port: 3000, docs: './openapi.yaml' },
-   * ]);
-   * // Services are now live on the network
-   * // tunnel.disconnect() to stop
-   * ```
+   * Requires keypair auth (wallet-sig needed for tunnel authentication).
    */
   async serve(
     services: TunnelServiceConfig[],
     options?: ServeOptions,
   ): Promise<TunnelClient> {
+    if (!this._secretKey) {
+      throw new ProxyGateError(
+        { error: 'keypair_required', message: 'Tunnel requires a keypair. Provide walletAddress + secretKey alongside apiKey for hybrid auth.' },
+        0,
+      );
+    }
+
     const tunnel = createTunnelClient({
       gatewayUrl: this.gatewayUrl,
       walletAddress: this.walletAddress,
@@ -133,10 +153,19 @@ export class ProxyGateClient {
   async sellerProfile(wallet: string): Promise<SellerProfileResponse> { return apiMethods.sellerProfile(this._apiDeps, wallet); }
   async settlements(opts?: SettlementsQueryOptions): Promise<SettlementsResponse> { return apiMethods.settlements(this._apiDeps, opts); }
 
+  /** Get auth headers for the current auth mode. */
+  private async _getAuthHeaders(): Promise<Record<string, string>> {
+    if (this._apiKey) {
+      return { authorization: `Bearer ${this._apiKey}` };
+    }
+    const headers = await this._signWithNonce();
+    return { ...headers };
+  }
+
   private async _signWithNonce(): Promise<AuthHeaders> {
-    const nonce = await this._noncePool.acquire();
+    const nonce = await this._noncePool!.acquire();
     const messageBytes = new TextEncoder().encode(nonce);
-    const signature = nacl.sign.detached(messageBytes, this._secretKey);
+    const signature = nacl.sign.detached(messageBytes, this._secretKey!);
     return { 'x-wallet': this.walletAddress, 'x-nonce': nonce, 'x-signature': bufferToBase64(signature) };
   }
 
@@ -145,6 +174,9 @@ export class ProxyGateClient {
     opts?: { body?: unknown; query?: Record<string, string>; headers?: Record<string, string>; signal?: AbortSignal },
   ): Promise<T> {
     const url = buildUrl(this.gatewayUrl, path, opts?.query);
+    if (this._apiKey) {
+      return bearerRequest<T>(url, method, this._apiKey, opts);
+    }
     const authHeaders = await this._signWithNonce();
     return authenticatedRequest<T>(url, method, { ...authHeaders }, opts);
   }

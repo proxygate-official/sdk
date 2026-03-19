@@ -1,9 +1,9 @@
-import type { ProxyOptions, AuthHeaders, ApiListingDetail, ShieldInfo } from '../types.js';
+import type { ProxyOptions, ApiListingDetail, ShieldInfo } from '../types.js';
 
 /** Dependencies needed by proxy methods. */
 export interface ProxyMethodDeps {
   gatewayUrl: string;
-  signWithNonce: () => Promise<AuthHeaders>;
+  getAuthHeaders: () => Promise<Record<string, string>>;
   buildUrl: (path: string, query?: Record<string, string>) => string;
   fetchApi: (listingId: string) => Promise<ApiListingDetail>;
 }
@@ -39,7 +39,7 @@ export async function proxyRequest(
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const authHeaders = await deps.signWithNonce();
+    const authHeaders = await deps.getAuthHeaders();
 
     const headers: Record<string, string> = {
       ...authHeaders,
