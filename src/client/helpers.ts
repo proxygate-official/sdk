@@ -99,6 +99,29 @@ export async function authenticatedRequest<T>(
   return (await response.json()) as T;
 }
 
+/** Make a bearer-authenticated request and parse the JSON response. */
+export async function bearerRequest<T>(
+  url: string,
+  method: string,
+  apiKey: string,
+  opts?: { body?: unknown; headers?: Record<string, string>; signal?: AbortSignal },
+): Promise<T> {
+  const response = await fetch(url, {
+    method,
+    headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', ...(opts?.headers ?? {}) },
+    body: opts?.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    signal: opts?.signal,
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    let gatewayError: GatewayError;
+    try { gatewayError = JSON.parse(body) as GatewayError; }
+    catch { gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` }; }
+    throw new ProxyGateError(gatewayError, response.status);
+  }
+  return (await response.json()) as T;
+}
+
 /** Make a public (unauthenticated) request and parse the JSON response. */
 export async function publicRequest<T>(
   url: string,

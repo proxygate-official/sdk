@@ -22,8 +22,12 @@ export interface AuthHeaders {
 /** Options for constructing a ProxyGateClient directly. */
 export interface ProxyGateClientOptions {
   gatewayUrl: string;
-  walletAddress: string;
-  secretKey: Uint8Array;
+  /** API key (starts with pg_live_). Alternative to wallet keypair auth. */
+  apiKey?: string;
+  /** Solana wallet public key. Required when using keypair auth. */
+  walletAddress?: string;
+  /** Ed25519 secret key. Required when using keypair auth or for on-chain operations. */
+  secretKey?: Uint8Array;
 }
 
 /** Options for the convenience `createClient` factory (reads keypair from file). */
@@ -119,7 +123,7 @@ export interface VaultDelegate {
       signal?: AbortSignal;
     },
   ) => Promise<T>;
-  secretKey: Uint8Array;
+  secretKey: Uint8Array | undefined;
   walletAddress: string;
   gatewayUrl: string;
 }
