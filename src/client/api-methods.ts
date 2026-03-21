@@ -64,7 +64,14 @@ export function categories(deps: ApiMethodDeps): Promise<CategoriesResponse> {
   return deps.publicRequest<CategoriesResponse>('GET', '/v1/categories');
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function api(deps: ApiMethodDeps, listingId: string): Promise<ApiListingDetail> {
+  // If not a UUID, resolve by service name/slug first
+  if (!UUID_RE.test(listingId)) {
+    return resolveByService(deps, listingId);
+  }
+
   const result = await deps.publicRequest<{ data: ApiListingDetail[] }>(
     'GET',
     '/v1/apis',
@@ -78,6 +85,40 @@ export async function api(deps: ApiMethodDeps, listingId: string): Promise<ApiLi
     );
   }
   return listing;
+}
+
+/**
+ * Resolve a service name or slug to the best available listing.
+ * Tries exact service slug match first, then falls back to text search.
+ */
+export async function resolveByService(
+  deps: ApiMethodDeps,
+  nameOrSlug: string,
+): Promise<ApiListingDetail> {
+  // Try exact service slug match
+  const bySlug = await deps.publicRequest<ApisResponse>(
+    'GET',
+    '/v1/apis',
+    { query: { service: nameOrSlug, sort: 'popular', limit: '1' } },
+  );
+  if (bySlug.data.length > 0) return bySlug.data[0];
+
+  // Fallback: text search (vector + ilike)
+  const bySearch = await deps.publicRequest<ApisResponse>(
+    'GET',
+    '/v1/apis',
+    { query: { q: nameOrSlug, sort: 'popular', limit: '1' } },
+  );
+  if (bySearch.data.length > 0) return bySearch.data[0];
+
+  throw new ProxyGateError(
+    {
+      error: 'listing_not_found',
+      message: `No listing found for "${nameOrSlug}"`,
+      action: `Search available APIs: proxygate apis -q ${nameOrSlug}`,
+    },
+    404,
+  );
 }
 
 export async function docs(

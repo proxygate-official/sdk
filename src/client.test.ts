@@ -580,7 +580,7 @@ describe('ProxyGateClient', () => {
   // -------------------------------------------------------------------------
 
   describe('proxy()', () => {
-    const LISTING_ID = 'listing-uuid-001';
+    const LISTING_ID = '00000000-0000-0000-0000-000000000001';
     const LISTING_DATA = {
       listing_id: LISTING_ID,
       seller_wallet: 'Sell...1234',
@@ -807,7 +807,7 @@ describe('ProxyGateClient', () => {
 
   describe('api()', () => {
     const LISTING_DATA = {
-      listing_id: 'listing-001',
+      listing_id: '11111111-1111-1111-1111-111111111111',
       seller_wallet: 'Sell...1234',
       service: 'openai',
       service_name: 'OpenAI',
@@ -832,9 +832,9 @@ describe('ProxyGateClient', () => {
       vi.stubGlobal('fetch', mockFetch);
 
       const client = createClient();
-      const result = await client.api('listing-001');
+      const result = await client.api('11111111-1111-1111-1111-111111111111');
 
-      expect(result.listing_id).toBe('listing-001');
+      expect(result.listing_id).toBe('11111111-1111-1111-1111-111111111111');
       expect(result.service).toBe('openai');
     });
 
@@ -847,7 +847,7 @@ describe('ProxyGateClient', () => {
       const client = createClient();
 
       try {
-        await client.api('nonexistent');
+        await client.api('99999999-9999-9999-9999-999999999999');
         expect.fail('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(ProxyGateError);

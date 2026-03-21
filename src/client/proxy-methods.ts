@@ -6,7 +6,10 @@ export interface ProxyMethodDeps {
   getAuthHeaders: () => Promise<Record<string, string>>;
   buildUrl: (path: string, query?: Record<string, string>) => string;
   fetchApi: (listingId: string) => Promise<ApiListingDetail>;
+  resolveByService: (nameOrSlug: string) => Promise<{ listing_id: string; service: string }>;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Send an authenticated proxy request to a specific listing.
@@ -20,18 +23,26 @@ export async function proxyRequest(
   body?: unknown,
   options?: ProxyOptions,
 ): Promise<Response> {
-  let meta = listingCache.get(listingId);
+  // Resolve service name/slug to listing ID if not a UUID
+  let resolvedId = listingId;
+  if (!UUID_RE.test(listingId)) {
+    const resolved = await deps.resolveByService(listingId);
+    resolvedId = resolved.listing_id;
+    listingCache.set(resolvedId, { service: resolved.service });
+  }
+
+  let meta = listingCache.get(resolvedId);
   if (!meta) {
-    const listing = await deps.fetchApi(listingId);
+    const listing = await deps.fetchApi(resolvedId);
     meta = { service: listing.service };
-    listingCache.set(listingId, meta);
+    listingCache.set(resolvedId, meta);
   }
 
   const method = options?.method ?? 'POST';
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const fullPath = `/proxy/${meta.service}${normalizedPath}`;
   const query: Record<string, string> = {
-    listing: listingId,
+    listing: resolvedId,
     ...(options?.query ?? {}),
   };
 

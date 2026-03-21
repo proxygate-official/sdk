@@ -20,30 +20,35 @@ npm install @proxygate/sdk
 ## Quick Start
 
 ```typescript
-import { ProxyGateClient } from '@proxygate/sdk';
+import { ProxyGateClient, parseSSE } from '@proxygate/sdk';
 
+// API key auth (recommended for agents)
+const client = new ProxyGateClient({
+  gatewayUrl: 'https://gateway.proxygate.ai',
+  apiKey: 'pg_live_...',
+});
+
+// Or wallet keypair auth
 const client = await ProxyGateClient.create({
   gatewayUrl: 'https://gateway.proxygate.ai',
   keypairPath: '~/.proxygate/keypair.json',
 });
 
-// Browse APIs
-const apis = await client.apis();
+// Search APIs
+const apis = await client.apis({ q: 'weather' });
 
-// Proxy a request
-const response = await client.proxy('listing-id', '/v1/chat/completions', {
-  method: 'POST',
-  body: { model: 'gpt-4', messages: [{ role: 'user', content: 'hello' }] },
+// Resolve service name to listing
+const listing = await client.resolveByService('weather-api');
+
+// Proxy by service name (auto-resolves to best listing)
+const response = await client.proxy('weather-api', '/v1/forecast', {
+  latitude: 52.37, longitude: 4.90, hourly: 'temperature_2m',
 });
 
-// Stream a response
-const stream = await client.proxy('listing-id', '/v1/chat/completions', {
-  method: 'POST',
-  body: { model: 'gpt-4', messages: [{ role: 'user', content: 'hello' }], stream: true },
-  stream: true,
-});
-for await (const chunk of stream) {
-  process.stdout.write(chunk);
+// Simple GET
+const postal = await client.proxy('agent-postal-lookup', '/nl/1012');
+for await (const event of parseSSE(res)) {
+  process.stdout.write(event.data);
 }
 ```
 
