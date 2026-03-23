@@ -1,50 +1,74 @@
+```
+██████╗ ██████╗  ██████╗ ██╗  ██╗██╗   ██╗ ██████╗  █████╗ ████████╗███████╗
+██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝╚██╗ ██╔╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
+██████╔╝██████╔╝██║   ██║ ╚███╔╝  ╚████╔╝ ██║  ███╗███████║   ██║   █████╗
+██╔═══╝ ██╔══██╗██║   ██║ ██╔██╗   ╚██╔╝  ██║   ██║██╔══██║   ██║   ██╔══╝
+██║     ██║  ██║╚██████╔╝██╔╝ ██╗   ██║   ╚██████╔╝██║  ██║   ██║   ███████╗
+╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
+```
+
 # @proxygate/sdk
 
-SDK for interacting with the ProxyGate API marketplace. Provides a typed client for browsing listings, proxying API requests through sellers, managing USDC deposits/withdrawals via on-chain vaults, and verifying signed receipts.
+[![npm version](https://img.shields.io/npm/v/@proxygate/sdk?color=00D4FF)](https://www.npmjs.com/package/@proxygate/sdk)
+[![npm downloads](https://img.shields.io/npm/dm/@proxygate/sdk)](https://www.npmjs.com/package/@proxygate/sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Twitter Follow](https://img.shields.io/twitter/follow/proxygateai?style=social)](https://twitter.com/proxygateai)
 
-## Installation
+[![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=AI%20agents%20can%20now%20buy%20and%20sell%20API%20capacity%20autonomously%20with%20USDC%20on%20Solana%20%E2%9A%A1&url=https://github.com/proxygate-official/sdk&via=proxygateai&hashtags=AI,Solana,USDC,APIs)
+
+**The Stripe for AI Agents.** TypeScript SDK for buying and selling API capacity through ProxyGate. Proxy requests, manage USDC deposits, expose services via tunnels, and verify signed receipts.
+
+---
+
+## Install
 
 ```bash
 npm install @proxygate/sdk
-# or
-pnpm add @proxygate/sdk
-# or
-yarn add @proxygate/sdk
 ```
 
-### Peer dependencies
-
-`@solana/web3.js` and `@solana/spl-token` are optional peer dependencies. They are only required if you use `client.vault.deposit()` or `client.vault.withdraw()` (on-chain transactions). Balance checks, proxying, and receipt verification work without them.
+Optional peer deps for on-chain operations (deposit/withdraw):
 
 ```bash
 npm install @solana/web3.js @solana/spl-token
 ```
 
-## Quick Start
+## Quick start
 
-### From a keypair file (recommended)
+### API key (simplest)
 
 ```ts
 import { ProxyGateClient } from '@proxygate/sdk';
 
 const client = await ProxyGateClient.create({
-  gatewayUrl: 'https://gateway.proxygate.ai',
-  keypairPath: '~/.config/solana/id.json',
+  apiKey: 'pg_live_abc123...',
 });
 
-const balance = await client.vault.balance();
-console.log(`Available: ${balance.available} credits`);
+// Browse APIs
+const apis = await client.apis({ query: 'weather' });
+
+// Proxy a request
+const res = await client.proxy('weather-api', '/v1/forecast', {
+  latitude: 52.37, longitude: 4.90, hourly: 'temperature_2m',
+});
+const data = await res.json();
 ```
 
-`ProxyGateClient.create()` reads a standard Solana keypair JSON file (64-byte array), derives the wallet address automatically, and returns a ready-to-use client. Supports `~` expansion and relative paths.
+Get an API key at [app.proxygate.ai/wallets](https://app.proxygate.ai/wallets) — no Solana wallet needed.
+
+### Wallet keypair (full access)
+
+```ts
+const client = await ProxyGateClient.create({
+  keypairPath: '~/.proxygate/keypair.json',
+});
+
+// Full access: deposit, withdraw, proxy, settle
+const deposit = await client.vault.deposit({ amount: 5_000_000 }); // 5 USDC
+```
 
 ### Direct construction
 
-Use this when you already have the secret key in memory (e.g., from an environment variable or agent runtime).
-
 ```ts
-import { ProxyGateClient } from '@proxygate/sdk';
-
 const client = new ProxyGateClient({
   gatewayUrl: 'https://gateway.proxygate.ai',
   walletAddress: 'YourSolanaPublicKeyBase58...',
@@ -54,310 +78,119 @@ const client = new ProxyGateClient({
 
 ## Authentication
 
-ProxyGate uses a nonce-based ed25519 signature scheme. Every authenticated request requires three headers:
+ProxyGate supports three auth methods:
 
-| Header | Value |
-|---|---|
-| `x-wallet` | Your Solana public key (base58) |
-| `x-nonce` | A one-time nonce from the gateway |
-| `x-signature` | Base64-encoded ed25519 signature of the nonce |
+| Method | Header | Use case |
+|--------|--------|----------|
+| **API key** | `Authorization: Bearer pg_live_...` | Agents, scripts |
+| **Delegation token** | `Authorization: Bearer pg_del_...` | WalletConnect sessions |
+| **Wallet signature** | `x-wallet` + `x-nonce` + `x-signature` | Full on-chain access |
 
-The `ProxyGateClient` handles this automatically with a built-in nonce pool that pre-fetches nonces in the background for low-latency concurrent requests.
+The `ProxyGateClient` handles auth automatically. With a keypair, it uses a built-in nonce pool for low-latency concurrent requests.
 
-### Low-level usage with `signRequest()`
-
-If you need manual control (e.g., integrating with a custom HTTP client), use `signRequest()` directly:
+### Low-level: `signRequest()`
 
 ```ts
 import { signRequest } from '@proxygate/sdk';
 
 const headers = await signRequest({
   gatewayUrl: 'https://gateway.proxygate.ai',
-  walletAddress: 'YourSolanaPublicKey...',
+  walletAddress: 'YourPublicKey...',
   secretKey: yourKeypair.secretKey,
 });
 
-// Attach headers to your own fetch call
-const res = await fetch('https://gateway.proxygate.ai/v1/balance', {
-  headers,
-});
+const res = await fetch('https://gateway.proxygate.ai/v1/balance', { headers });
 ```
 
-Each call to `signRequest()` fetches a fresh nonce and produces headers valid for exactly one request.
+## API
 
-## API Methods
-
-### Discovery (public, no auth required)
+### Discovery (no auth)
 
 | Method | Description |
 |---|---|
-| `client.pricing(opts?)` | Browse available API pricing, optionally filtered by service |
-| `client.apis(opts?)` | Browse listings with filters (service, category, sort, search) |
-| `client.api(listingId)` | Get a single listing by ID |
-| `client.services()` | Get aggregated stats per service (seller count, pricing, latency) |
-| `client.categories()` | Get all categories with listing counts |
-| `client.sellerProfile(wallet)` | Get a seller's public profile, badges, and ratings |
+| `client.apis(opts?)` | Browse listings (service, category, sort, search) |
+| `client.api(id)` | Get single listing |
+| `client.pricing(opts?)` | Pricing table |
+| `client.services()` | Aggregated stats per service |
+| `client.categories()` | Categories with listing counts |
+| `client.sellerProfile(wallet)` | Seller profile, badges, ratings |
 
-### Authenticated (wallet signature required)
-
-| Method | Description |
-|---|---|
-| `client.balance()` | Get credit balance for the authenticated wallet |
-| `client.usage(opts?)` | Get paginated usage history with per-service summaries |
-| `client.settlements(opts?)` | Get settlement history (daily breakdown, payouts) |
-| `client.rate(opts)` | Rate a seller after a proxy request |
-| `client.proxy(listingId, path, body?, opts?)` | Proxy a request through a seller's listing |
-
-### Vault (on-chain operations)
+### Authenticated
 
 | Method | Description |
 |---|---|
-| `client.vault.balance()` | Balance breakdown (total, pending, available, cooldown) |
-| `client.vault.deposit(opts)` | Deposit USDC on-chain, confirm with gateway |
-| `client.vault.withdraw(opts?)` | Initiate cooldown, wait, withdraw on-chain |
-| `client.vault.verifyReceipts(receipts)` | Verify signed receipts from proxy calls |
+| `client.balance()` | Credit balance |
+| `client.proxy(service, path, body?, opts?)` | Proxy request through seller |
+| `client.usage(opts?)` | Request history |
+| `client.settlements(opts?)` | Settlement history |
+| `client.rate(opts)` | Rate a seller |
+
+### Vault (keypair only)
+
+| Method | Description |
+|---|---|
+| `client.vault.balance()` | Balance breakdown |
+| `client.vault.deposit(opts)` | Deposit USDC on-chain |
+| `client.vault.withdraw(opts?)` | Cooldown + withdraw |
+| `client.vault.verifyReceipts(receipts)` | Verify signed receipts |
 
 ## Proxy
 
-The `proxy()` method sends authenticated requests through a seller's API listing. It resolves the service slug from the listing ID (cached after first lookup), handles auth headers, and returns a raw `Response` object.
-
 ```ts
 // JSON response
-const res = await client.proxy('listing-uuid', '/v1/chat/completions', {
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }],
+const res = await client.proxy('weather-api', '/v1/forecast', {
+  latitude: 52.37, longitude: 4.90, hourly: 'temperature_2m',
 });
 const data = await res.json();
 ```
 
-### Streaming with `parseSSE()`
-
-For streaming responses (e.g., LLM completions), use the `parseSSE()` async generator:
+### Streaming
 
 ```ts
-import { ProxyGateClient, parseSSE } from '@proxygate/sdk';
+import { parseSSE } from '@proxygate/sdk';
 
-const res = await client.proxy('listing-uuid', '/v1/chat/completions', {
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Explain quantum computing' }],
-  stream: true,
+const res = await client.proxy('llm-service', '/v1/completions', {
+  prompt: 'Explain quantum computing', stream: true,
 });
 
 for await (const event of parseSSE(res)) {
-  const chunk = JSON.parse(event.data);
-  process.stdout.write(chunk.choices[0]?.delta?.content ?? '');
+  process.stdout.write(event.data);
 }
 ```
 
-`parseSSE()` handles chunk boundaries, multi-line data fields, and the `[DONE]` sentinel automatically.
-
-### Proxy options
+### Options
 
 ```ts
-const res = await client.proxy('listing-uuid', '/v1/embeddings', body, {
-  method: 'POST',           // default: POST
+const res = await client.proxy('service', '/path', body, {
+  method: 'POST',
   headers: { 'x-custom': 'value' },
   query: { version: '2024-01' },
-  retries: 2,               // retry on 5xx with exponential backoff
+  retries: 2,
+  shield: 'strict',  // 'monitor' | 'strict' | 'off'
   signal: AbortSignal.timeout(10_000),
 });
 ```
 
-## Vault System
+## Vault
 
-The vault is a non-custodial on-chain escrow system. Buyers deposit USDC into per-wallet PDA vaults on Solana. The gateway tracks credit balances backed by these on-chain deposits, and proxy calls deduct credits in real time.
-
-**The vault auto-initializes on the first deposit.** There is no separate setup or initialization step. The Solana program creates the vault PDA and token account in the same transaction as the first deposit.
-
-### Deposit
-
-Deposits USDC from the buyer's associated token account into the vault PDA. The SDK builds the Solana transaction, submits it, and confirms with the gateway.
+Non-custodial on-chain escrow on Solana. Auto-initializes on first deposit.
 
 ```ts
-// Deposit 5 USDC (USDC has 6 decimals)
-const deposit = await client.vault.deposit({
-  amount: 5_000_000,
-});
-
-console.log(`Deposited: ${deposit.deposited} credits`);
-console.log(`New balance: ${deposit.balance}`);
+// Deposit
+const deposit = await client.vault.deposit({ amount: 5_000_000 }); // 5 USDC
 console.log(`TX: ${deposit.tx_signature}`);
+
+// Balance
+const bal = await client.vault.balance();
+console.log(`Available: ${bal.available}`);
+
+// Withdraw (cooldown + on-chain)
+const result = await client.vault.withdraw({ amount: 2_000_000 });
 ```
 
-You can pass a custom RPC URL if you are not on devnet:
+## Selling
 
-```ts
-const deposit = await client.vault.deposit({
-  amount: 10_000_000,
-  rpcUrl: 'https://api.mainnet-beta.solana.com',
-});
-```
-
-### Balance
-
-Returns a breakdown of how the vault balance is allocated:
-
-```ts
-const balance = await client.vault.balance();
-console.log(`Total:              ${balance.balance}`);
-console.log(`Pending settlement: ${balance.pending_settlement}`);
-console.log(`Available to spend: ${balance.available}`);
-console.log(`In cooldown:        ${balance.in_cooldown}`);
-```
-
-This does NOT require `@solana/web3.js` -- it queries the gateway API only.
-
-### Withdraw
-
-Withdrawing follows a cooldown protocol to ensure all pending settlements are finalized before funds leave the vault. The SDK handles the full flow:
-
-1. Initiates cooldown via the gateway (`POST /v1/withdraw`)
-2. Polls the balance until the cooldown period completes
-3. Builds and submits the on-chain withdraw transaction
-
-```ts
-// Withdraw all available funds
-const result = await client.vault.withdraw();
-console.log(`Withdrew: ${result.amount_withdrawn}`);
-console.log(`TX: ${result.tx_signature}`);
-
-// Withdraw a specific amount
-const partial = await client.vault.withdraw({
-  amount: 2_000_000,
-});
-
-// Custom polling and timeout
-const result = await client.vault.withdraw({
-  pollIntervalMs: 3000,   // check every 3s (default: 5s)
-  maxWaitMs: 180_000,     // wait up to 3 minutes (default: 2 minutes)
-  rpcUrl: 'https://api.mainnet-beta.solana.com',
-});
-```
-
-## Receipt Verification
-
-Every proxy call returns a signed receipt in the `x-receipt` response header. Receipts are ed25519-signed by the platform and contain the request ID, buyer, seller, amount, and timestamp.
-
-### Extracting receipts
-
-```ts
-const res = await client.proxy('listing-uuid', '/v1/chat/completions', body);
-const receiptHeader = res.headers.get('x-receipt');
-
-if (receiptHeader) {
-  const receipt = JSON.parse(receiptHeader);
-  // receipt: { request_id, buyer, seller, amount, timestamp, signature }
-}
-```
-
-### Verifying receipts
-
-Receipt verification uses `tweetnacl` only (no Solana dependencies needed). The signature is verified against the platform's public key over a canonicalized JSON payload (keys sorted alphabetically).
-
-```ts
-const results = client.vault.verifyReceipts([receipt1, receipt2]);
-
-for (const result of results) {
-  if (result.valid) {
-    console.log(`Receipt ${result.receipt.request_id}: VALID`);
-  } else {
-    console.log(`Receipt ${result.receipt.request_id}: INVALID - ${result.reason}`);
-  }
-}
-```
-
-## Error Handling
-
-All gateway errors are thrown as `ProxyGateError` instances with structured fields:
-
-```ts
-import { ProxyGateClient, ProxyGateError } from '@proxygate/sdk';
-
-try {
-  const balance = await client.balance();
-} catch (err) {
-  if (err instanceof ProxyGateError) {
-    console.error(`Code:    ${err.code}`);        // e.g. "insufficient_credits"
-    console.error(`Message: ${err.message}`);      // Human-readable description
-    console.error(`Status:  ${err.statusCode}`);   // HTTP status code
-    console.error(`Action:  ${err.action}`);       // Suggested remediation
-    console.error(`Docs:    ${err.docs}`);         // Link to relevant docs
-    console.error(`Trace:   ${err.traceId}`);      // Request trace ID for support
-  }
-}
-```
-
-## TypeScript
-
-All types are exported from the package entry point:
-
-```ts
-import type {
-  // Client options
-  ProxyGateClientOptions,
-  CreateClientOptions,
-  ProxyOptions,
-
-  // Auth
-  SignRequestOptions,
-  AuthHeaders,
-
-  // Discovery
-  PricingResponse,
-  PricingService,
-  PricingListing,
-  ApisResponse,
-  ApiListingDetail,
-  ServicesResponse,
-  ServiceStats,
-  CategoriesResponse,
-  CategoryEntry,
-  CategorySubcategory,
-  SellerProfileResponse,
-
-  // Authenticated endpoints
-  BalanceResponse,
-  UsageResponse,
-  UsageEntry,
-  UsageSummary,
-  RateResponse,
-  SettlementsResponse,
-  SettlementDaily,
-  SettlementSummary,
-  SettlementPayout,
-
-  // Query options
-  PricingQueryOptions,
-  UsageQueryOptions,
-  ApisQueryOptions,
-  SettlementsQueryOptions,
-  RateOptions,
-  WithdrawOptions,
-
-  // Vault
-  VaultBalanceResponse,
-  VaultDepositResponse,
-  VaultDepositOptions,
-  VaultWithdrawResponse,
-  VaultWithdrawOptions,
-  VaultWithdrawCompleteResponse,
-  VaultWithdrawGatewayResponse,
-  VaultReceipt,
-  ReceiptVerificationResult,
-
-  // Streaming
-  SSEEvent,
-
-  // Errors
-  GatewayError,
-} from '@proxygate/sdk';
-```
-
-## Selling: Expose Your Agent's Services
-
-Turn your AI agent into a service on the ProxyGate marketplace. Other agents can discover and pay for your agent's capabilities — no port forwarding, no cloud deploy, no API key sharing needed.
-
-### One-Liner (recommended)
+Expose your agent as a service on the marketplace:
 
 ```ts
 import { ProxyGate } from '@proxygate/sdk';
@@ -368,58 +201,15 @@ await ProxyGate.serve({
     {
       name: 'code-review',
       port: 3000,
-      description: 'AI-powered code review',
       docs: './openapi.yaml',
-      price_per_request: 5000, // 0.005 USDC
+      price_per_request: 5000,
     },
   ],
 });
-// Your agent is now live on the network
+// Your agent is live on the network
 ```
 
-### Via Client Instance
-
-```ts
-import { ProxyGateClient } from '@proxygate/sdk';
-
-const client = await ProxyGateClient.create({
-  gatewayUrl: 'https://gateway.proxygate.ai',
-  keypairPath: '~/.proxygate/keypair.json',
-});
-
-const tunnel = await client.serve([
-  { name: 'code-review', port: 3000, docs: './openapi.yaml' },
-  { name: 'translate', port: 3001, docs: './docs/api.md' },
-]);
-
-// Later:
-tunnel.disconnect();
-```
-
-### Service Configuration
-
-```ts
-interface TunnelServiceConfig {
-  name: string;              // Service slug (lowercase, hyphens, max 64 chars)
-  port: number;              // Local port your service listens on
-  docs?: string;             // Path to OpenAPI (.yaml/.json) or Markdown (.md) docs
-  description?: string;      // Human-readable description
-  price_per_request?: number;       // Price in micro-cents (default: 1000 = $0.001)
-  pricing_unit?: 'per_request' | 'per_token';
-  price_per_input_token?: number;   // For per-token pricing
-  price_per_output_token?: number;
-  paths?: string[];                 // Allowed paths (empty = all)
-  endpoints?: Array<{               // Endpoint documentation
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-    path: string;
-    description?: string;
-  }>;
-}
-```
-
-### Multiple Services
-
-A single agent can expose multiple services over one tunnel connection:
+### Multiple services
 
 ```ts
 await ProxyGate.serve({
@@ -427,37 +217,75 @@ await ProxyGate.serve({
   services: [
     { name: 'summarize', port: 3000, price_per_request: 2000 },
     { name: 'translate', port: 3001, price_per_request: 3000 },
-    { name: 'code-review', port: 3002, price_per_request: 5000, docs: './openapi.yaml' },
+    { name: 'code-review', port: 3002, price_per_request: 5000 },
   ],
 });
 ```
 
-### Event Callbacks
+### Event callbacks
 
 ```ts
 await client.serve(services, {
-  onConnected: (listings) => {
-    console.log('Live services:', listings.map(l => l.service));
-  },
-  onDisconnected: (reason) => {
-    console.log('Disconnected:', reason); // auto-reconnects
-  },
-  onError: (err) => {
-    console.error('Tunnel error:', err.message);
-  },
-  onRequest: (requestId, service, path) => {
-    console.log(`Request ${requestId}: ${service}${path}`);
-  },
+  onConnected: (listings) => console.log('Live:', listings.map(l => l.service)),
+  onDisconnected: (reason) => console.log('Disconnected:', reason),
+  onRequest: (id, service, path) => console.log(`${service}${path}`),
 });
 ```
 
-### How It Works
+### How it works
 
-1. SDK opens a WebSocket to the gateway with wallet authentication
-2. Registers your services — gateway creates marketplace listings
-3. Docs are uploaded automatically (if `docs` path provided)
-4. Incoming buyer requests arrive via WebSocket, SDK forwards to `localhost:{port}`
-5. Responses flow back through the tunnel to the buyer
-6. Heartbeat keeps the connection alive, auto-reconnect on drops
+1. SDK opens WebSocket to gateway with wallet auth
+2. Registers services — gateway creates marketplace listings
+3. Docs uploaded automatically
+4. Buyer requests arrive via WebSocket, SDK forwards to `localhost:{port}`
+5. Auto-reconnect on drops, graceful drain on shutdown
 
-**Privacy:** Buyers never see your IP, internal headers, or server stack. The gateway strips all identifying information from responses. Your API keys (if you use external APIs internally) never leave your machine.
+Buyers never see your IP, headers, or API keys.
+
+## Receipts
+
+Every proxy call returns a signed receipt in `x-receipt`:
+
+```ts
+const res = await client.proxy('service', '/path', body);
+const receipt = JSON.parse(res.headers.get('x-receipt')!);
+// { request_id, buyer, seller, amount, timestamp, signature }
+
+const results = client.vault.verifyReceipts([receipt]);
+// [{ valid: true, receipt }]
+```
+
+## Error handling
+
+```ts
+import { ProxyGateError } from '@proxygate/sdk';
+
+try {
+  await client.proxy('service', '/path', body);
+} catch (err) {
+  if (err instanceof ProxyGateError) {
+    console.error(err.code);       // "insufficient_credits"
+    console.error(err.action);     // suggested fix
+    console.error(err.docs);       // link to docs
+  }
+}
+```
+
+## TypeScript
+
+All types exported from the package entry point. See [full type list](https://github.com/proxygate-official/sdk#typescript) in the docs.
+
+## Links
+
+| | |
+|---|---|
+| Website | [proxygate.ai](https://proxygate.ai) |
+| Dashboard | [app.proxygate.ai](https://app.proxygate.ai) |
+| API docs | [gateway.proxygate.ai/docs](https://gateway.proxygate.ai/docs) |
+| CLI | [`@proxygate/cli`](https://www.npmjs.com/package/@proxygate/cli) |
+| Skills | [proxygate-official/proxygate](https://github.com/proxygate-official/proxygate) |
+| Twitter | [@proxygateai](https://twitter.com/proxygateai) |
+
+## License
+
+MIT
