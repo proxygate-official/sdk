@@ -19,6 +19,10 @@ export { ProxyGate } from './proxygate.js';
 // Auth (existing)
 export { signRequest } from './auth.js';
 
+// Delegation tokens
+export { decodeDelegationToken, isDelegationExpiringSoon } from './auth/delegation.js';
+export type { DelegationTokenClaims } from './auth/delegation.js';
+
 // Keypair & Base58 utilities
 export { parseKeypairBytes } from './keypair.js';
 export { encodeBase58, decodeBase58 } from './base58.js';

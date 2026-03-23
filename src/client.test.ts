@@ -1003,7 +1003,7 @@ describe('ProxyGateClient', () => {
     it('throws when no auth provided', () => {
       expect(() => new ProxyGateClient({
         gatewayUrl: testGatewayUrl,
-      })).toThrow('Provide either apiKey or walletAddress + secretKey');
+      })).toThrow('Provide apiKey, delegationToken, or walletAddress + secretKey');
     });
 
     it('vault.deposit() throws in apiKey-only mode', async () => {
@@ -1098,6 +1098,98 @@ describe('ProxyGateClient', () => {
       // Vault delegate should have secretKey
       const delegate = client._vaultDelegate();
       expect(delegate.secretKey).toBeDefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Delegation token auth tests
+  // -------------------------------------------------------------------------
+
+  describe('delegation token auth', () => {
+    function makeDelegationToken(payload: Record<string, unknown>): string {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+        .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+      const body = btoa(JSON.stringify(payload))
+        .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+      return `pg_del_${header}.${body}.fake-sig`;
+    }
+
+    const DELEGATION_WALLET = '7xKXtg2CW87d9VCdDzGVqVoR3GAJOkCgapL5TzuM9RAh';
+    const validToken = makeDelegationToken({
+      sub: DELEGATION_WALLET,
+      scopes: ['proxy:openai'],
+      jti: 'tok_test1',
+      exp: Math.floor(Date.now() / 1000) + 7200,
+      iat: Math.floor(Date.now() / 1000),
+    });
+
+    it('creates client with delegation token only', () => {
+      const client = new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        delegationToken: validToken,
+      });
+      expect(client).toBeInstanceOf(ProxyGateClient);
+      expect(client.gatewayUrl).toBe(testGatewayUrl);
+    });
+
+    it('derives walletAddress from JWT sub claim', () => {
+      const client = new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        delegationToken: validToken,
+      });
+      expect(client.walletAddress).toBe(DELEGATION_WALLET);
+    });
+
+    it('throws on delegation token without pg_del_ prefix', () => {
+      expect(() => new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        delegationToken: 'invalid_prefix_token',
+      })).toThrow('Delegation token must start with pg_del_');
+    });
+
+    it('auth priority: apiKey > delegationToken > keypair', async () => {
+      const TEST_API_KEY = 'pg_live_test_key_1234567890';
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        return new Response(JSON.stringify({ balance: 100 }));
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      // When both apiKey and delegationToken provided, apiKey wins
+      const client = new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        apiKey: TEST_API_KEY,
+        delegationToken: validToken,
+        walletAddress: 'TestWallet',
+        secretKey: testKeypair.secretKey,
+      });
+      await client.balance();
+
+      const balanceCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/v1/balance'),
+      );
+      expect(balanceCall).toBeTruthy();
+      const init = balanceCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['authorization']).toBe(`Bearer ${TEST_API_KEY}`);
+    });
+
+    it('uses Bearer auth with delegation token for requests', async () => {
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        return new Response(JSON.stringify({ balance: 100 }));
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = new ProxyGateClient({
+        gatewayUrl: testGatewayUrl,
+        delegationToken: validToken,
+      });
+      await client.balance();
+
+      const balanceCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/v1/balance'),
+      );
+      expect(balanceCall).toBeTruthy();
+      const init = balanceCall![1] as RequestInit;
+      expect((init.headers as Record<string, string>)['authorization']).toBe(`Bearer ${validToken}`);
     });
   });
 

@@ -24,6 +24,8 @@ export interface ProxyGateClientOptions {
   gatewayUrl: string;
   /** API key (starts with pg_live_). Alternative to wallet keypair auth. */
   apiKey?: string;
+  /** Delegation token (starts with pg_del_). Scoped, time-limited auth for agents. */
+  delegationToken?: string;
   /** Solana wallet public key. Required when using keypair auth. */
   walletAddress?: string;
   /** Ed25519 secret key. Required when using keypair auth or for on-chain operations. */
