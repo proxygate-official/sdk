@@ -123,8 +123,15 @@ export async function resolveByService(
 
 export async function docs(
   deps: ApiMethodDeps,
-  listingId: string,
+  idOrService: string,
 ): Promise<ListingDocsResponse | null> {
+  // Resolve service name/slug to listing UUID if needed
+  let listingId = idOrService;
+  if (!UUID_RE.test(idOrService)) {
+    const resolved = await resolveByService(deps, idOrService);
+    listingId = resolved.listing_id;
+  }
+
   try {
     return await deps.publicRequest<ListingDocsResponse>(
       'GET',
