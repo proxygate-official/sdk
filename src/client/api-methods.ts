@@ -123,13 +123,17 @@ export async function resolveByService(
 
 export async function docs(
   deps: ApiMethodDeps,
-  idOrService: string,
+  listingId: string,
 ): Promise<ListingDocsResponse | null> {
-  // Resolve service name/slug to listing UUID if needed
-  let listingId = idOrService;
-  if (!UUID_RE.test(idOrService)) {
-    const resolved = await resolveByService(deps, idOrService);
-    listingId = resolved.listing_id;
+  if (!UUID_RE.test(listingId)) {
+    throw new ProxyGateError(
+      {
+        error: 'invalid_listing_id',
+        message: 'Docs require a full listing UUID. Use `proxygate apis` to find the ID.',
+        action: 'Run: proxygate apis --json | jq ".[].listing_id"',
+      },
+      400,
+    );
   }
 
   try {
