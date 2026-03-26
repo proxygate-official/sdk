@@ -122,6 +122,7 @@ export interface CreateListingResponse {
     body?: string;
     truncated?: boolean;
     error?: string;
+    hint?: string | null;
     endpoint: { method: string; path: string };
     validation_type: 'full' | 'auth_only';
   }>;
@@ -191,6 +192,7 @@ export interface TestListingResponse {
     body?: string;
     truncated?: boolean;
     error?: string;
+    hint?: string | null;
     endpoint: { method: string; path: string };
     validation_type: 'full' | 'auth_only';
   }>;
