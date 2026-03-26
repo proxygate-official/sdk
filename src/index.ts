@@ -123,6 +123,7 @@ export type {
   AcceptJobResponse,
   RejectJobResponse,
   CancelJobResponse,
+  TestListingResponse,
   UploadDocsOptions,
   UploadDocsResponse,
   ListingType,

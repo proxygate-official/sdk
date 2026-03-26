@@ -180,6 +180,24 @@ export interface RotateKeyResponse {
   key_masked: string;
 }
 
+/** Response from POST /v1/listings/:id/test (retest). */
+export interface TestListingResponse {
+  id: string;
+  test_results: Array<{
+    success: boolean;
+    status?: number;
+    status_text?: string;
+    latency_ms: number;
+    body?: string;
+    truncated?: boolean;
+    error?: string;
+    endpoint: { method: string; path: string };
+    validation_type: 'full' | 'auth_only';
+  }>;
+  test_passed: boolean;
+  activated: boolean;
+}
+
 /** Options for uploading listing documentation. */
 export interface UploadDocsOptions {
   doc_type: 'openapi' | 'markdown';

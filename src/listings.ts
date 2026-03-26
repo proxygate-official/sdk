@@ -11,6 +11,7 @@ import type {
   DeleteListingResponse,
   RotateKeyOptions,
   RotateKeyResponse,
+  TestListingResponse,
   UploadDocsOptions,
   UploadDocsResponse,
 } from './types.js';
@@ -91,6 +92,14 @@ export class ListingsClient {
       'POST',
       `/v1/listings/${id}/rotate-key`,
       { body: opts },
+    );
+  }
+
+  /** Re-test endpoints for an existing listing. Activates if tests pass. */
+  async test(id: string): Promise<TestListingResponse> {
+    return this._delegate.authenticatedRequest<TestListingResponse>(
+      'POST',
+      `/v1/listings/${id}/test`,
     );
   }
 
