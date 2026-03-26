@@ -102,6 +102,8 @@ export interface CreateListingOptions {
   listing_type?: 'proxy' | 'skill' | 'product' | 'dataset' | 'service' | 'connector';
   /** Type-specific metadata (e.g. endpoint_url for skill, file_url for product). */
   type_metadata?: Record<string, unknown>;
+  /** Skip endpoint testing on create — activates immediately without validation. */
+  skip_test?: boolean;
 }
 
 /** Response from create endpoint. */
@@ -111,6 +113,20 @@ export interface CreateListingResponse {
   is_active: boolean;
   key_masked: string;
   sync_status: 'synced' | 'pending';
+  /** Per-endpoint test results (only present when skip_test is false). */
+  test_results?: Array<{
+    success: boolean;
+    status?: number;
+    status_text?: string;
+    latency_ms: number;
+    body?: string;
+    truncated?: boolean;
+    error?: string;
+    endpoint: { method: string; path: string };
+    validation_type: 'full' | 'auth_only';
+  }>;
+  /** Whether at least one endpoint passed validation. */
+  test_passed?: boolean;
 }
 
 /** Options for updating a listing (all fields optional). */
