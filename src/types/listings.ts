@@ -126,8 +126,10 @@ export interface CreateListingResponse {
     endpoint: { method: string; path: string };
     validation_type: 'full' | 'auth_only';
   }>;
-  /** Whether at least one endpoint passed validation. */
+  /** Whether all endpoints passed validation. */
   test_passed?: boolean;
+  /** Human-readable summary of test results (e.g. "2/3 endpoint(s) passed. All must pass before activation."). */
+  message?: string;
 }
 
 /** Options for updating a listing (all fields optional). */
@@ -198,6 +200,8 @@ export interface TestListingResponse {
   }>;
   test_passed: boolean;
   activated: boolean;
+  /** Human-readable summary of test results. */
+  message?: string;
 }
 
 /** Options for uploading listing documentation. */
