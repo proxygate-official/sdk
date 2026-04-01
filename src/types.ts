@@ -13,6 +13,7 @@ export type {
   ShieldMode,
   ShieldInfo,
   ShieldBlockedError,
+  SellerStrategy,
 } from './types/core.js';
 
 export type {

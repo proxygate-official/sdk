@@ -107,7 +107,7 @@ export class ProxyGateClient {
         getAuthHeaders: () => this._getAuthHeaders(),
         buildUrl: (p, q) => buildUrl(this.gatewayUrl, p, q),
         fetchApi: (id) => this.api(id),
-        resolveByService: (name) => this.resolveByService(name),
+        resolveByService: (name, seller) => this.resolveByService(name, seller),
       },
       this._listingCache, listingId, path, body, options,
     );
@@ -174,7 +174,7 @@ export class ProxyGateClient {
   async services(): Promise<ServicesResponse> { return apiMethods.services(this._apiDeps); }
   async categories(): Promise<CategoriesResponse> { return apiMethods.categories(this._apiDeps); }
   async api(listingId: string): Promise<ApiListingDetail> { return apiMethods.api(this._apiDeps, listingId); }
-  async resolveByService(nameOrSlug: string): Promise<ApiListingDetail> { return apiMethods.resolveByService(this._apiDeps, nameOrSlug); }
+  async resolveByService(nameOrSlug: string, seller?: import('./types.js').SellerStrategy): Promise<ApiListingDetail> { return apiMethods.resolveByService(this._apiDeps, nameOrSlug, seller); }
   async docs(listingId: string): Promise<ListingDocsResponse | null> { return apiMethods.docs(this._apiDeps, listingId); }
   async sellerProfile(wallet: string): Promise<SellerProfileResponse> { return apiMethods.sellerProfile(this._apiDeps, wallet); }
   async settlements(opts?: SettlementsQueryOptions): Promise<SettlementsResponse> { return apiMethods.settlements(this._apiDeps, opts); }

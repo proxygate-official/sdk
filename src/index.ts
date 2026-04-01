@@ -63,6 +63,7 @@ export type {
   GatewayError,
   ProxyOptions,
   ShieldMode,
+  SellerStrategy,
   ShieldInfo,
   ShieldBlockedError,
   CategoriesResponse,

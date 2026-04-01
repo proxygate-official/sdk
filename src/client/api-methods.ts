@@ -16,6 +16,7 @@ import type {
   ApisQueryOptions,
   SettlementsQueryOptions,
   RateOptions,
+  SellerStrategy,
 } from '../types.js';
 
 /** Client internals needed by API methods. */
@@ -87,29 +88,41 @@ export async function api(deps: ApiMethodDeps, listingId: string): Promise<ApiLi
   return listing;
 }
 
+/** Map seller strategy to gateway sort parameter. */
+const STRATEGY_SORT: Record<SellerStrategy, string> = {
+  cheapest: 'price_asc',
+  'best-rated': 'best_rated',
+  fastest: 'fastest',
+  popular: 'popular',
+};
+
 /**
  * Resolve a service name or slug to the best available listing.
  * Tries exact service slug match first, then falls back to text search.
+ * Fetches top 5 results and picks randomly among ties for load spreading.
  */
 export async function resolveByService(
   deps: ApiMethodDeps,
   nameOrSlug: string,
+  seller?: SellerStrategy,
 ): Promise<ApiListingDetail> {
-  // Try exact service slug match
+  const sort = STRATEGY_SORT[seller ?? 'popular'];
+
+  // Try exact service slug match — fetch top 5 for tie-breaking
   const bySlug = await deps.publicRequest<ApisResponse>(
     'GET',
     '/v1/apis',
-    { query: { service: nameOrSlug, sort: 'popular', limit: '1' } },
+    { query: { service: nameOrSlug, sort, limit: '5' } },
   );
-  if (bySlug.data.length > 0) return bySlug.data[0];
+  if (bySlug.data.length > 0) return pickFromTies(bySlug.data, seller);
 
   // Fallback: text search (vector + ilike)
   const bySearch = await deps.publicRequest<ApisResponse>(
     'GET',
     '/v1/apis',
-    { query: { q: nameOrSlug, sort: 'popular', limit: '1' } },
+    { query: { q: nameOrSlug, sort, limit: '5' } },
   );
-  if (bySearch.data.length > 0) return bySearch.data[0];
+  if (bySearch.data.length > 0) return pickFromTies(bySearch.data, seller);
 
   throw new ProxyGateError(
     {
@@ -119,6 +132,36 @@ export async function resolveByService(
     },
     404,
   );
+}
+
+/**
+ * Pick randomly from listings that tie on the strategy's key metric.
+ * If only one listing or no strategy, returns the first.
+ */
+function pickFromTies(listings: ApiListingDetail[], seller?: SellerStrategy): ApiListingDetail {
+  if (listings.length <= 1 || !seller) return listings[0];
+
+  const first = listings[0];
+  let ties: ApiListingDetail[];
+
+  switch (seller) {
+    case 'cheapest':
+      ties = listings.filter((l) => l.price_per_request_usdc === first.price_per_request_usdc);
+      break;
+    case 'best-rated':
+      ties = listings.filter((l) => l.trust_score === first.trust_score);
+      break;
+    case 'fastest':
+      ties = listings.filter((l) => l.avg_latency_ms === first.avg_latency_ms);
+      break;
+    case 'popular':
+      ties = listings.filter((l) => l.available_rpm === first.available_rpm);
+      break;
+    default:
+      return first;
+  }
+
+  return ties[Math.floor(Math.random() * ties.length)];
 }
 
 export async function docs(

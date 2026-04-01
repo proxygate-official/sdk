@@ -167,9 +167,18 @@ const res = await client.proxy('service', '/path', body, {
   query: { version: '2024-01' },
   retries: 2,
   shield: 'strict',  // 'monitor' | 'strict' | 'off'
+  seller: 'cheapest', // 'cheapest' | 'best-rated' | 'fastest' | 'popular'
   signal: AbortSignal.timeout(10_000),
 });
 ```
+
+When multiple sellers offer the same service, `seller` controls which one is picked:
+- `popular` — highest capacity (default)
+- `cheapest` — lowest price per request
+- `best-rated` — highest trust score
+- `fastest` — lowest average latency
+
+When sellers tie on the selected metric, one is picked randomly for load spreading.
 
 ## Vault
 

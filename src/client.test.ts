@@ -774,6 +774,307 @@ describe('ProxyGateClient', () => {
       const init = proxyCall![1] as RequestInit;
       expect((init.headers as Record<string, string>)['content-type']).toBeUndefined();
     });
+
+    it('resolves service slug to first listing when multiple sellers exist', async () => {
+      const SELLER1 = {
+        listing_id: '11111111-1111-1111-1111-111111111111',
+        seller_wallet: 'Sell...1111',
+        service: 'openai',
+        service_name: 'OpenAI',
+        auth_pattern: 'bearer',
+        pricing_unit: 'per_request',
+        price_per_request_usdc: 0.002,
+        price_per_input_token_usdc: null,
+        price_per_output_token_usdc: null,
+        available_rpm: 100,
+        uptime_percent: 0.99,
+        avg_latency_ms: 150,
+        trust_score: 90,
+        badges: ['reliable'],
+        is_available: true,
+        member_since: '2026-01-01',
+      };
+      const SELLER2 = {
+        ...SELLER1,
+        listing_id: '22222222-2222-2222-2222-222222222222',
+        seller_wallet: 'Sell...2222',
+        price_per_request_usdc: 0.001,
+        trust_score: 60,
+        badges: [],
+      };
+
+      // /v1/apis?service=openai&sort=popular&limit=1 returns SELLER1 (most popular)
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [SELLER1] } }],
+        ['/proxy/', { status: 200, body: { ok: true } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy('openai', '/v1/chat/completions', { model: 'gpt-4' });
+
+      // Should resolve to SELLER1 and use its listing_id
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      const calledUrl = proxyCall![0] as string;
+      expect(calledUrl).toContain(`listing=${SELLER1.listing_id}`);
+      expect(calledUrl).toContain('/proxy/openai/');
+    });
+
+    it('always picks first result from /v1/apis (no smart selection)', async () => {
+      // Even when SELLER2 is cheaper, SDK picks first returned result
+      const EXPENSIVE = {
+        listing_id: '11111111-1111-1111-1111-111111111111',
+        seller_wallet: 'Sell...1111',
+        service: 'openai',
+        service_name: 'OpenAI',
+        auth_pattern: 'bearer',
+        pricing_unit: 'per_request',
+        price_per_request_usdc: 0.010,
+        price_per_input_token_usdc: null,
+        price_per_output_token_usdc: null,
+        available_rpm: 200,
+        uptime_percent: 0.99,
+        avg_latency_ms: 100,
+        trust_score: 95,
+        badges: ['reliable'],
+        is_available: true,
+        member_since: '2026-01-01',
+      };
+
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [EXPENSIVE] } }],
+        ['/proxy/', { status: 200, body: { ok: true } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy('openai', '/v1/chat/completions', { model: 'gpt-4' });
+
+      // Verify resolveByService called with sort=popular, limit=5 (for tie-breaking)
+      const apisCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/v1/apis') && (call[0] as string).includes('service='),
+      );
+      const apisUrl = apisCall![0] as string;
+      expect(apisUrl).toContain('sort=popular');
+      expect(apisUrl).toContain('limit=5');
+
+      // Uses the (expensive) listing since it's the "popular" one
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      expect((proxyCall![0] as string)).toContain(`listing=${EXPENSIVE.listing_id}`);
+    });
+
+    it('explicit UUID bypasses resolveByService entirely', async () => {
+      const LISTING = {
+        listing_id: '33333333-3333-3333-3333-333333333333',
+        seller_wallet: 'Sell...3333',
+        service: 'openai',
+        service_name: 'OpenAI',
+        auth_pattern: 'bearer',
+        pricing_unit: 'per_request',
+        price_per_request_usdc: 0.002,
+        price_per_input_token_usdc: null,
+        price_per_output_token_usdc: null,
+        available_rpm: 100,
+        uptime_percent: 0.99,
+        avg_latency_ms: 150,
+        trust_score: 50,
+        badges: [],
+        is_available: true,
+        member_since: '2026-01-01',
+      };
+
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING] } }],
+        ['/proxy/', { status: 200, body: { ok: true } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy('33333333-3333-3333-3333-333333333333', '/v1/test', { data: 1 });
+
+      // Should call /v1/apis to get service name (for URL construction)
+      // but NOT with service= filter (it uses listing_id lookup)
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      const calledUrl = proxyCall![0] as string;
+      expect(calledUrl).toContain('listing=33333333-3333-3333-3333-333333333333');
+    });
+
+    it('caches resolved listing UUID so second call reuses it', async () => {
+      const LISTING = {
+        listing_id: '44444444-4444-4444-4444-444444444444',
+        seller_wallet: 'Sell...4444',
+        service: 'weather-api',
+        service_name: 'Weather API',
+        auth_pattern: 'bearer',
+        pricing_unit: 'per_request',
+        price_per_request_usdc: 0.001,
+        price_per_input_token_usdc: null,
+        price_per_output_token_usdc: null,
+        available_rpm: 50,
+        uptime_percent: 0.95,
+        avg_latency_ms: 200,
+        trust_score: 70,
+        badges: [],
+        is_available: true,
+        member_since: '2026-01-01',
+      };
+
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING] } }],
+        ['/proxy/', { status: 200, body: { ok: true } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy('weather-api', '/v1/forecast', { city: 'Amsterdam' });
+      await client.proxy('weather-api', '/v1/forecast', { city: 'Berlin' });
+
+      // Both proxy calls should use the same resolved listing UUID
+      const proxyCalls = mockFetch.mock.calls.filter(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      expect(proxyCalls.length).toBe(2);
+      // Both should target the same listing
+      expect((proxyCalls[0][0] as string)).toContain(`listing=${LISTING.listing_id}`);
+      expect((proxyCalls[1][0] as string)).toContain(`listing=${LISTING.listing_id}`);
+    });
+
+    describe('seller strategy', () => {
+      const CHEAP = {
+        listing_id: 'aaaa1111-1111-1111-1111-111111111111',
+        seller_wallet: 'Sell...aaaa',
+        service: 'openai',
+        service_name: 'OpenAI',
+        auth_pattern: 'bearer',
+        pricing_unit: 'per_request',
+        price_per_request_usdc: 0.001,
+        price_per_input_token_usdc: null,
+        price_per_output_token_usdc: null,
+        available_rpm: 50,
+        uptime_percent: 0.90,
+        avg_latency_ms: 300,
+        trust_score: 60,
+        badges: [],
+        is_available: true,
+        member_since: '2026-01-01',
+      };
+      const FAST = {
+        ...CHEAP,
+        listing_id: 'bbbb2222-2222-2222-2222-222222222222',
+        seller_wallet: 'Sell...bbbb',
+        price_per_request_usdc: 0.005,
+        avg_latency_ms: 50,
+        trust_score: 80,
+        available_rpm: 100,
+      };
+      const TRUSTED = {
+        ...CHEAP,
+        listing_id: 'cccc3333-3333-3333-3333-333333333333',
+        seller_wallet: 'Sell...cccc',
+        price_per_request_usdc: 0.003,
+        avg_latency_ms: 150,
+        trust_score: 95,
+        available_rpm: 80,
+      };
+
+      it('seller=cheapest uses sort=price_asc', async () => {
+        const mockFetch = createMockFetch(new Map([
+          ['/v1/apis', { status: 200, body: { data: [CHEAP, TRUSTED, FAST] } }],
+          ['/proxy/', { status: 200, body: { ok: true } }],
+        ]));
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        await client.proxy('openai', '/v1/chat/completions', { model: 'gpt-4' }, {
+          seller: 'cheapest',
+        });
+
+        const apisCall = mockFetch.mock.calls.find(
+          (call: unknown[]) => (call[0] as string).includes('/v1/apis') && (call[0] as string).includes('service='),
+        );
+        expect((apisCall![0] as string)).toContain('sort=price_asc');
+      });
+
+      it('seller=best-rated uses sort=best_rated', async () => {
+        const mockFetch = createMockFetch(new Map([
+          ['/v1/apis', { status: 200, body: { data: [TRUSTED, FAST, CHEAP] } }],
+          ['/proxy/', { status: 200, body: { ok: true } }],
+        ]));
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        await client.proxy('openai', '/v1/chat/completions', { model: 'gpt-4' }, {
+          seller: 'best-rated',
+        });
+
+        const apisCall = mockFetch.mock.calls.find(
+          (call: unknown[]) => (call[0] as string).includes('/v1/apis') && (call[0] as string).includes('service='),
+        );
+        expect((apisCall![0] as string)).toContain('sort=best_rated');
+      });
+
+      it('seller=fastest uses sort=fastest', async () => {
+        const mockFetch = createMockFetch(new Map([
+          ['/v1/apis', { status: 200, body: { data: [FAST, TRUSTED, CHEAP] } }],
+          ['/proxy/', { status: 200, body: { ok: true } }],
+        ]));
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        await client.proxy('openai', '/v1/chat/completions', { model: 'gpt-4' }, {
+          seller: 'fastest',
+        });
+
+        const apisCall = mockFetch.mock.calls.find(
+          (call: unknown[]) => (call[0] as string).includes('/v1/apis') && (call[0] as string).includes('service='),
+        );
+        expect((apisCall![0] as string)).toContain('sort=fastest');
+      });
+
+      it('default (no seller) uses sort=popular', async () => {
+        const mockFetch = createMockFetch(new Map([
+          ['/v1/apis', { status: 200, body: { data: [FAST] } }],
+          ['/proxy/', { status: 200, body: { ok: true } }],
+        ]));
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        await client.proxy('openai', '/v1/chat/completions', { model: 'gpt-4' });
+
+        const apisCall = mockFetch.mock.calls.find(
+          (call: unknown[]) => (call[0] as string).includes('/v1/apis') && (call[0] as string).includes('service='),
+        );
+        expect((apisCall![0] as string)).toContain('sort=popular');
+      });
+
+      it('different strategies use different cache keys', async () => {
+        const mockFetch = createMockFetch(new Map([
+          ['/v1/apis', { status: 200, body: { data: [CHEAP] } }],
+          ['/proxy/', { status: 200, body: { ok: true } }],
+        ]));
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        // First call with cheapest
+        await client.proxy('openai', '/v1/chat/completions', {}, { seller: 'cheapest' });
+        // Second call with fastest — should NOT use cached cheapest result
+        await client.proxy('openai', '/v1/chat/completions', {}, { seller: 'fastest' });
+
+        // Should have made 2 /v1/apis calls (different cache keys)
+        const apisCalls = mockFetch.mock.calls.filter(
+          (call: unknown[]) => (call[0] as string).includes('/v1/apis') && (call[0] as string).includes('service='),
+        );
+        expect(apisCalls.length).toBe(2);
+        expect((apisCalls[0][0] as string)).toContain('sort=price_asc');
+        expect((apisCalls[1][0] as string)).toContain('sort=fastest');
+      });
+    });
   });
 
   // -------------------------------------------------------------------------

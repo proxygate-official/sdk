@@ -97,6 +97,15 @@ export interface ShieldBlockedError {
 // Proxy options (replaces ProxyChain)
 // ---------------------------------------------------------------------------
 
+/**
+ * Seller selection strategy when resolving a service slug to a listing.
+ * - 'cheapest': lowest price per request
+ * - 'best-rated': highest trust score
+ * - 'fastest': lowest average latency
+ * - 'popular': highest capacity (default)
+ */
+export type SellerStrategy = 'cheapest' | 'best-rated' | 'fastest' | 'popular';
+
 /** Options for client.proxy() method. */
 export interface ProxyOptions {
   /** HTTP method (default: POST). */
@@ -111,6 +120,8 @@ export interface ProxyOptions {
   retries?: number;
   /** Shield scanning mode override for this request (default: buyer profile setting). */
   shield?: ShieldMode;
+  /** Seller selection strategy when multiple sellers exist for a service (default: 'popular'). */
+  seller?: SellerStrategy;
 }
 
 /** Delegate object exposing ProxyGateClient internals to VaultClient. */
