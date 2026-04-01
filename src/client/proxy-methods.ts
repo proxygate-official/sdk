@@ -6,7 +6,7 @@ export interface ProxyMethodDeps {
   getAuthHeaders: () => Promise<Record<string, string>>;
   buildUrl: (path: string, query?: Record<string, string>) => string;
   fetchApi: (listingId: string) => Promise<ApiListingDetail>;
-  resolveByService: (nameOrSlug: string) => Promise<{ listing_id: string; service: string }>;
+  resolveByService: (nameOrSlug: string, seller?: import('../types.js').SellerStrategy) => Promise<{ listing_id: string; service: string }>;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -23,12 +23,20 @@ export async function proxyRequest(
   body?: unknown,
   options?: ProxyOptions,
 ): Promise<Response> {
-  // Resolve service name/slug to listing ID if not a UUID
+  // Resolve service name/slug to listing ID if not a UUID (cached after first resolution)
   let resolvedId = listingId;
   if (!UUID_RE.test(listingId)) {
-    const resolved = await deps.resolveByService(listingId);
-    resolvedId = resolved.listing_id;
-    listingCache.set(resolvedId, { service: resolved.service });
+    const seller = options?.seller;
+    const slugKey = `_slug:${listingId}:${seller ?? 'popular'}`;
+    const cached = listingCache.get(slugKey);
+    if (cached) {
+      resolvedId = cached.service; // service field stores the resolved UUID for slug entries
+    } else {
+      const resolved = await deps.resolveByService(listingId, seller);
+      resolvedId = resolved.listing_id;
+      listingCache.set(resolvedId, { service: resolved.service });
+      listingCache.set(slugKey, { service: resolvedId }); // cache slug+strategy → UUID mapping
+    }
   }
 
   let meta = listingCache.get(resolvedId);

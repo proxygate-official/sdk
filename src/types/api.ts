@@ -7,6 +7,10 @@ export interface EndpointSpec {
   path: string;
   description?: string;
   request_schema?: JsonSchema;
+  /** Seller-defined body field overrides. Merged on top of buyer's request body — buyer cannot override these values. */
+  body_overrides?: Record<string, unknown>;
+  /** Seller-defined query param overrides. Merged into upstream URL — buyer cannot override these values. */
+  query_overrides?: Record<string, string>;
 }
 
 /** Single service entry in pricing response (flat -- no nested listings). */
@@ -66,8 +70,8 @@ export interface UsageResponse {
 
 /** POST /v1/rate */
 export interface RateResponse {
-  status: string;
-  message: string;
+  success: boolean;
+  is_update: boolean;
 }
 
 /** GET /v1/apis -- matches gateway CursorPage<CatalogListing> response shape. */
@@ -230,8 +234,8 @@ export interface ApisQueryOptions {
   limit?: number;
   /** Filter by category slug(s), comma-separated for multiple. */
   category?: string;
-  /** Sort order: price_asc, price_desc, popular, newest. */
-  sort?: 'price_asc' | 'price_desc' | 'popular' | 'newest';
+  /** Sort order: price_asc, price_desc, popular, newest, fastest, best_rated. */
+  sort?: 'price_asc' | 'price_desc' | 'popular' | 'newest' | 'fastest' | 'best_rated';
   /** Text search query. */
   q?: string;
   /** Filter for verified sellers only. */
