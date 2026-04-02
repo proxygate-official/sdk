@@ -210,9 +210,25 @@ export interface UploadDocsOptions {
   content: string;
 }
 
-/** Response from docs upload endpoint. */
+/** Response from docs upload endpoint. For OpenAPI specs, includes parsed endpoints and test results. */
 export interface UploadDocsResponse {
   uploaded: true;
   listing_id: string;
   doc_type: 'openapi' | 'markdown';
+  /** Number of endpoints extracted from OpenAPI spec (0 for markdown). */
+  endpoints_parsed: number;
+  /** Endpoint test results — present when new endpoints were synced to the listing. */
+  test_results?: Array<{
+    success: boolean;
+    status?: number;
+    latency_ms: number;
+    error?: string;
+    hint?: string | null;
+    endpoint: { method: string; path: string };
+    validation_type: 'full' | 'auth_only';
+  }>;
+  /** Whether all endpoints passed validation. */
+  test_passed?: boolean;
+  /** Human-readable summary of test results. */
+  message?: string;
 }
