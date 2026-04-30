@@ -109,11 +109,43 @@ const res = await fetch('https://gateway.proxygate.ai/v1/balance', { headers });
 | Method | Description |
 |---|---|
 | `client.apis(opts?)` | Browse listings (service, category, sort, search) |
-| `client.api(id)` | Get single listing |
+| `client.api(id)` | Get single listing — accepts UUID, slug, or `seller-handle/listing-slug` ([details](#listing-identifiers)) |
 | `client.pricing(opts?)` | Pricing table |
 | `client.services()` | Aggregated stats per service |
 | `client.categories()` | Categories with listing counts |
-| `client.sellerProfile(wallet)` | Seller profile, badges, ratings |
+| `client.sellerProfile(handleOrWallet)` | Seller profile by slug or wallet — gateway canonicalizes |
+
+### Listing identifiers
+
+`client.api()` accepts three input forms (since SDK 0.6 / Phase 51):
+
+```ts
+// 1. UUID — exact listing match (existing, unchanged)
+const listing = await client.api('ad3db61c-23d2-41b7-b7ce-5485daa882b6');
+
+// 2. Single slug — listing slug across the whole marketplace
+const listing = await client.api('blockdb-api');
+
+// 3. Composite seller-handle / listing-slug — scoped to a specific seller
+const listing = await client.api('blockdb/blockdb-api');
+
+// 4. Service name fallback — back-compat for `client.proxy('openai', …)` style
+const listing = await client.api('openai');
+```
+
+The same input forms work transparently from `client.proxy(input, path, body)` because `proxy()` calls `api()` internally.
+
+`client.sellerProfile()` accepts either a slug or a base58 wallet — the gateway resolves slug-first, wallet-fallback. The response carries `canonical_handle` + `canonical_path` so you can issue a 308 redirect from wallet → slug for SEO without a second round-trip.
+
+```ts
+// Both forms hit /v1/seller/profile/by-handle/:handle
+const bySlug   = await client.sellerProfile('blockdb');
+const byWallet = await client.sellerProfile('9jXisENZUR22DMLH99ottdQ4ukWTapvHcMUBp875HnBJ');
+
+// Both responses have canonical_handle = 'blockdb' and canonical_path = '/seller/blockdb'.
+```
+
+> **Backwards compatibility:** existing UUID-based code keeps working unchanged. The `/v1/seller/profile/:wallet` legacy endpoint has been replaced by `/v1/seller/profile/by-handle/:handle`, which accepts the same wallet input. Mutations on `client.listings` (`update`, `pause`, `delete`, `rotateKey`, …) still take a UUID — only **read** paths accept slug forms in v0.6.
 
 ### Authenticated
 

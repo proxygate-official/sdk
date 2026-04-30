@@ -22,6 +22,21 @@ import type {
  * Provides CRUD operations, pause/unpause, and key rotation
  * for seller API listings. Uses the same wallet auth as buyer operations.
  *
+ * **Identifier contract (Phase 51-08):** mutation methods on this class
+ * (`get`, `update`, `pause`, `unpause`, `delete`, `rotateKey`, `test`,
+ * `uploadDocs`) accept the listing **UUID only**. Slug-based mutation routing
+ * (e.g. `PATCH /v1/listings/:slug`) is intentionally out of scope for v0.6 —
+ * that would require new gateway endpoints with their own ownership checks.
+ *
+ * Read paths exposed via `client.api()` / `client.proxy()` accept UUID, slug,
+ * or `seller-handle/listing-slug` composites (see SDK README → "Listing
+ * identifiers"). To convert a slug into a UUID for use with this class:
+ *
+ * ```ts
+ * const detail = await client.api('blockdb-api');
+ * await client.listings.pause(detail.listing_id);  // UUID for mutation
+ * ```
+ *
  * @example
  * ```ts
  * const listings = await client.listings.list();
