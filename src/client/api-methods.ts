@@ -67,25 +67,82 @@ export function categories(deps: ApiMethodDeps): Promise<CategoriesResponse> {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function api(deps: ApiMethodDeps, listingId: string): Promise<ApiListingDetail> {
-  // If not a UUID, resolve by service name/slug first
-  if (!UUID_RE.test(listingId)) {
-    return resolveByService(deps, listingId);
+// Phase 51-08: kebab-case slug accepted by gateway (mirrors seller_listings.slug CHECK regex).
+// Length 3-64 inclusive: leading + trailing alphanumeric, hyphens allowed in middle.
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
+
+// Phase 51-08: composite seller-handle/listing-slug syntax. Both segments must be
+// kebab-case. The seller segment may be a slug; the listing segment must be a slug.
+const COMPOSITE_RE = /^([a-z0-9][a-z0-9-]{1,62}[a-z0-9])\/([a-z0-9][a-z0-9-]{1,62}[a-z0-9])$/;
+
+/**
+ * Resolve a listing by ID.
+ *
+ * Accepts THREE input forms (Phase 51-08):
+ *   1. UUID — `client.api('ad3db61c-23d2-...')` → `/v1/apis?listing_id=X&limit=1`
+ *   2. Single slug — `client.api('blockdb-api')` → `/v1/apis?slug=X&limit=1`
+ *   3. Composite — `client.api('blockdb/blockdb-api')` → `/v1/apis?seller_slug=X&slug=Y&limit=1`
+ *
+ * If none of those match the input, falls back to {@link resolveByService}
+ * (service-name lookup → free-text search) for backwards compat with
+ * `client.api('openai')`-style calls. If THAT also returns nothing, throws
+ * `ProxyGateError(listing_not_found, 404)`.
+ */
+export async function api(deps: ApiMethodDeps, input: string): Promise<ApiListingDetail> {
+  // 1. UUID path — direct listing_id filter.
+  if (UUID_RE.test(input)) {
+    const result = await deps.publicRequest<{ data: ApiListingDetail[] }>(
+      'GET',
+      '/v1/apis',
+      { query: { listing_id: input, limit: '1' } },
+    );
+    const listing = result.data[0];
+    if (!listing) {
+      throw new ProxyGateError(
+        { error: 'listing_not_found', message: `Listing ${input} not found` },
+        404,
+      );
+    }
+    return listing;
   }
 
-  const result = await deps.publicRequest<{ data: ApiListingDetail[] }>(
-    'GET',
-    '/v1/apis',
-    { query: { limit: '100' } },
-  );
-  const listing = result.data.find((l) => l.listing_id === listingId);
-  if (!listing) {
-    throw new ProxyGateError(
-      { error: 'listing_not_found', message: `Listing ${listingId} not found` },
-      404,
+  // 2. Composite seller-handle/listing-slug — order matters: must come BEFORE the
+  // single-slug check because COMPOSITE_RE is a strict superset (both halves valid).
+  const composite = input.match(COMPOSITE_RE);
+  if (composite) {
+    const [, sellerSlug, listingSlug] = composite;
+    const result = await deps.publicRequest<{ data: ApiListingDetail[] }>(
+      'GET',
+      '/v1/apis',
+      { query: { seller_slug: sellerSlug, slug: listingSlug, limit: '1' } },
     );
+    const listing = result.data[0];
+    if (!listing) {
+      throw new ProxyGateError(
+        {
+          error: 'listing_not_found',
+          message: `No listing "${listingSlug}" found for seller "${sellerSlug}"`,
+        },
+        404,
+      );
+    }
+    return listing;
   }
-  return listing;
+
+  // 3. Single-segment kebab-case slug — try slug filter first.
+  if (SLUG_RE.test(input)) {
+    const result = await deps.publicRequest<{ data: ApiListingDetail[] }>(
+      'GET',
+      '/v1/apis',
+      { query: { slug: input, limit: '1' } },
+    );
+    if (result.data.length > 0) return result.data[0];
+    // Slug filter returned no rows — fall through to service-name resolver so
+    // legacy `client.api('openai')` (service name, not slug) still works.
+  }
+
+  // 4. Fallback: service name + text search (existing behavior).
+  return resolveByService(deps, input);
 }
 
 /** Map seller strategy to gateway sort parameter. */
@@ -192,10 +249,25 @@ export async function docs(
   }
 }
 
-export function sellerProfile(deps: ApiMethodDeps, wallet: string): Promise<SellerProfileResponse> {
+/**
+ * Get a seller profile by handle (slug or wallet).
+ *
+ * Phase 51-08 — uses the by-handle resolver from gateway plan 51-02:
+ *   `GET /v1/seller/profile/by-handle/:handle`
+ *
+ * The gateway resolves `handle` slug-first, wallet-fallback. Response carries
+ * `canonical_handle` + `canonical_path` so the web layer can issue a 308
+ * redirect from wallet → slug for SEO link consolidation without a second
+ * round-trip.
+ *
+ * Backwards compat: callers passing a wallet still receive the same fields
+ * they always did (wallet, services, badges, trust_score, etc.) plus the new
+ * branding + canonicalization fields.
+ */
+export function sellerProfile(deps: ApiMethodDeps, handleOrWallet: string): Promise<SellerProfileResponse> {
   return deps.publicRequest<SellerProfileResponse>(
     'GET',
-    `/v1/seller/profile/${encodeURIComponent(wallet)}`,
+    `/v1/seller/profile/by-handle/${encodeURIComponent(handleOrWallet)}`,
   );
 }
 

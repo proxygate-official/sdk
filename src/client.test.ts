@@ -427,7 +427,9 @@ describe('ProxyGateClient', () => {
         const init = profileCall![1] as RequestInit;
         expect((init.headers as Record<string, string>)['x-wallet']).toBeUndefined();
         const calledUrl = profileCall![0] as string;
-        expect(calledUrl).toContain('/v1/seller/profile/SellerWallet');
+        // Phase 51-08: SDK now hits the by-handle resolver (`/v1/seller/profile/by-handle/:handle`)
+        // which accepts slug OR wallet. The legacy `/v1/seller/profile/:wallet` was removed.
+        expect(calledUrl).toContain('/v1/seller/profile/by-handle/SellerWallet');
       });
     });
 
@@ -1140,8 +1142,11 @@ describe('ProxyGateClient', () => {
     });
 
     it('throws ProxyGateError 404 when listing not found', async () => {
+      // Phase 51-08: api() now queries `/v1/apis?listing_id=X&limit=1` directly
+      // instead of fetching the whole catalog and filtering client-side. The
+      // mock must therefore return an empty array (gateway-side filter miss).
       const mockFetch = createMockFetch(
-        new Map([['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }]]),
+        new Map([['/v1/apis', { status: 200, body: { data: [] } }]]),
       );
       vi.stubGlobal('fetch', mockFetch);
 

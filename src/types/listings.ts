@@ -24,6 +24,17 @@ export interface ListingSummary {
   type_metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  // ---------------------------------------------------------------------------
+  // Phase 51-08: surface slug + seller_slug + seller account_type so seller-side
+  // dashboards can build canonical URLs without re-querying. All optional —
+  // older gateway responses omit them.
+  // ---------------------------------------------------------------------------
+  /** Listing slug (kebab-case, unique per seller). */
+  slug?: string;
+  /** Seller's vanity slug, when set. NULL when seller has no slug. */
+  seller_slug?: string | null;
+  /** Seller's account type. */
+  account_type?: 'personal' | 'organization';
 }
 
 /** Full listing detail (single listing response). */
@@ -64,6 +75,13 @@ export interface ListingRow {
   listing_type?: string;
   type_metadata?: Record<string, unknown>;
   service_catalog: { slug: string; name: string; base_url: string } | null;
+  // Phase 51-08: surface listing slug + seller branding hints on the raw row.
+  /** Listing slug (kebab-case, unique per seller). */
+  slug?: string;
+  /** Seller's vanity slug, when set. */
+  seller_slug?: string | null;
+  /** Seller's account type. */
+  account_type?: 'personal' | 'organization';
   [key: string]: unknown;
 }
 

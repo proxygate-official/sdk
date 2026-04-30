@@ -104,7 +104,7 @@ export interface ServicesResponse {
   count: number;
 }
 
-/** GET /v1/seller/profile/:wallet */
+/** GET /v1/seller/profile/:wallet (legacy) and /v1/seller/profile/by-handle/:handle (Phase 51-02). */
 export interface SellerProfileResponse {
   wallet: string;
   services_listed: number;
@@ -119,6 +119,41 @@ export interface SellerProfileResponse {
   total_ratings: number;
   verification_status?: string;
   is_verified?: boolean;
+
+  // ---------------------------------------------------------------------------
+  // Phase 51-08: by-handle resolver fields. Optional for backwards compat with
+  // the legacy `/v1/seller/profile/:wallet` shape that doesn't return them.
+  // ---------------------------------------------------------------------------
+  /** Vanity slug (kebab-case). NULL until the seller claims one. */
+  slug?: string | null;
+  /** 'personal' (humans + agents) or 'organization' (companies/teams). */
+  account_type?: 'personal' | 'organization';
+  /** Organization name when account_type='organization'. */
+  organization?: string | null;
+  /** Display name (overrides truncated wallet on profile cards). */
+  display_name?: string | null;
+  /** Sanitized markdown bio (text + links + headers + lists + bold/italic only). */
+  bio_md?: string | null;
+  /** Banner image URL (Supabase Storage). */
+  banner_url?: string | null;
+  /** Website URL (https only, validated server-side). */
+  website_url?: string | null;
+  /** Avatar / logo URL. */
+  avatar_url?: string | null;
+  /** Country code (ISO 3166-1 alpha-2). */
+  country?: string | null;
+  /**
+   * Canonical handle as resolved by the gateway: slug if set, else wallet.
+   * Use for SEO 308 redirects (wallet → slug) and link consolidation.
+   */
+  canonical_handle?: string;
+  /**
+   * Canonical path: `/seller/{canonical_handle}`.
+   * Use directly for redirects to avoid client-side string assembly.
+   */
+  canonical_path?: string;
+  /** Number of currently active listings owned by this seller. */
+  total_active_listings?: number;
 }
 
 /** Per-endpoint pricing override. */
@@ -193,6 +228,23 @@ export interface ApiListingDetail {
   listing_type?: ListingType;
   /** Type-specific metadata. */
   type_metadata?: Record<string, unknown>;
+
+  // ---------------------------------------------------------------------------
+  // Phase 51-08: enrichment fields surfaced from api_catalog view (51-01) and
+  // catalog handler (51-02). All optional — older gateway versions omit them.
+  // ---------------------------------------------------------------------------
+  /** Listing slug (kebab-case, unique per seller). */
+  slug?: string;
+  /** Seller's vanity slug, when set. NULL when seller has no slug. */
+  seller_slug?: string | null;
+  /** Seller's account type. Drives JSON-LD schema (Organization vs Person). */
+  seller_account_type?: 'personal' | 'organization';
+  /** Seller's account type — alias used by some web layers; same value as seller_account_type. */
+  account_type?: 'personal' | 'organization';
+  /** Organization name when seller_account_type='organization'. NULL otherwise. */
+  organization?: string | null;
+  /** Total number of ratings received. Used to gate aggregateRating JSON-LD. */
+  total_ratings?: number;
 }
 
 /** GET /v1/apis/:listingId/docs response. */
