@@ -17,7 +17,7 @@ import type {
 } from './types.js';
 
 /**
- * Client for managing seller listings on ProxyGate.
+ * Client for managing seller listings on Proxygate.
  *
  * Provides CRUD operations, pause/unpause, and key rotation
  * for seller API listings. Uses the same wallet auth as buyer operations.

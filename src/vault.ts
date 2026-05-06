@@ -2,7 +2,7 @@ import nacl from 'tweetnacl';
 import { decodeBase58 } from './base58.js';
 import { base64ToBytes, buildAndSendDeposit } from './vault/instructions.js';
 import { executeWithdraw, withdrawConfirm as withdrawConfirmFn } from './vault/withdraw.js';
-import { ProxyGateError } from './client/helpers.js';
+import { ProxygateError } from './client/helpers.js';
 import type {
   VaultDelegate,
   VaultBalanceResponse,
@@ -31,7 +31,7 @@ function canonicalizeReceipt(receipt: VaultReceipt): Uint8Array {
 }
 
 /**
- * Client for interacting with the ProxyGate non-custodial vault system.
+ * Client for interacting with the Proxygate non-custodial vault system.
  *
  * Provides methods for depositing USDC into per-buyer PDA vaults,
  * withdrawing with cooldown awareness, checking balance breakdown,
@@ -62,7 +62,7 @@ export class VaultClient {
 
   async deposit(opts: VaultDepositOptions): Promise<VaultDepositResponse> {
     if (!this._delegate.secretKey) {
-      throw new ProxyGateError(
+      throw new ProxygateError(
         { error: 'keypair_required', message: 'Deposit requires a keypair. Provide walletAddress + secretKey alongside apiKey for hybrid auth.' },
         0,
       );
@@ -78,7 +78,7 @@ export class VaultClient {
 
   async withdraw(opts?: VaultWithdrawOptions): Promise<VaultWithdrawCompleteResponse> {
     if (!this._delegate.secretKey) {
-      throw new ProxyGateError(
+      throw new ProxygateError(
         { error: 'keypair_required', message: 'Withdraw requires a keypair. Provide walletAddress + secretKey alongside apiKey for hybrid auth.' },
         0,
       );

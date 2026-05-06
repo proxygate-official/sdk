@@ -117,7 +117,7 @@ describe('vault.balance()', () => {
     expect(result.available).toBe(0);
   });
 
-  it('throws ProxyGateError on 401', async () => {
+  it('throws ProxygateError on 401', async () => {
     delegate.authenticatedRequest.mockRejectedValueOnce(
       new Error('Unauthorized'),
     );

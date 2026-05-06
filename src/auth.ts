@@ -2,7 +2,7 @@ import nacl from 'tweetnacl';
 import type { SignRequestOptions, AuthHeaders } from './types.js';
 
 /**
- * Fetch a nonce from the ProxyGate gateway and sign it with your ed25519 key.
+ * Fetch a nonce from the Proxygate gateway and sign it with your ed25519 key.
  *
  * Returns auth headers to attach to your authenticated gateway request.
  * Each call to signRequest produces headers valid for ONE request only.

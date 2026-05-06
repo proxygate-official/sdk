@@ -55,7 +55,7 @@ async function loadDocsFiles(
 // ---------------------------------------------------------------------------
 
 /**
- * Create a tunnel client that connects to the ProxyGate gateway via WebSocket,
+ * Create a tunnel client that connects to the Proxygate gateway via WebSocket,
  * registering local services and forwarding proxied requests to localhost.
  */
 export function createTunnelClient(options: TunnelOptions): TunnelClient {

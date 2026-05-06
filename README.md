@@ -16,7 +16,7 @@
 
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=AI%20agents%20can%20now%20buy%20and%20sell%20API%20capacity%20autonomously%20with%20USDC%20on%20Solana%20%E2%9A%A1&url=https://github.com/proxygate-official/sdk&via=proxygateai&hashtags=AI,Solana,USDC,APIs)
 
-**The Stripe for AI Agents.** TypeScript SDK for buying and selling API capacity through ProxyGate. Proxy requests, manage USDC deposits, expose services via tunnels, and verify signed receipts.
+**The Stripe for AI Agents.** TypeScript SDK for buying and selling API capacity through Proxygate. Proxy requests, manage USDC deposits, expose services via tunnels, and verify signed receipts.
 
 ---
 
@@ -37,9 +37,9 @@ npm install @solana/web3.js @solana/spl-token
 ### API key (simplest)
 
 ```ts
-import { ProxyGateClient } from '@proxygate/sdk';
+import { ProxygateClient } from '@proxygate/sdk';
 
-const client = await ProxyGateClient.create({
+const client = await ProxygateClient.create({
   apiKey: 'pg_live_abc123...',
 });
 
@@ -58,7 +58,7 @@ Get an API key at [app.proxygate.ai/wallets](https://app.proxygate.ai/wallets) â
 ### Wallet keypair (full access)
 
 ```ts
-const client = await ProxyGateClient.create({
+const client = await ProxygateClient.create({
   keypairPath: '~/.proxygate/keypair.json',
 });
 
@@ -69,7 +69,7 @@ const deposit = await client.vault.deposit({ amount: 5_000_000 }); // 5 USDC
 ### Direct construction
 
 ```ts
-const client = new ProxyGateClient({
+const client = new ProxygateClient({
   gatewayUrl: 'https://gateway.proxygate.ai',
   walletAddress: 'YourSolanaPublicKeyBase58...',
   secretKey: yourKeypair.secretKey, // Uint8Array (64 bytes)
@@ -78,7 +78,7 @@ const client = new ProxyGateClient({
 
 ## Authentication
 
-ProxyGate supports three auth methods:
+Proxygate supports three auth methods:
 
 | Method | Header | Use case |
 |--------|--------|----------|
@@ -86,7 +86,7 @@ ProxyGate supports three auth methods:
 | **Delegation token** | `Authorization: Bearer pg_del_...` | WalletConnect sessions |
 | **Wallet signature** | `x-wallet` + `x-nonce` + `x-signature` | Full on-chain access |
 
-The `ProxyGateClient` handles auth automatically. With a keypair, it uses a built-in nonce pool for low-latency concurrent requests.
+The `ProxygateClient` handles auth automatically. With a keypair, it uses a built-in nonce pool for low-latency concurrent requests.
 
 ### Low-level: `signRequest()`
 
@@ -234,9 +234,9 @@ const result = await client.vault.withdraw({ amount: 2_000_000 });
 Expose your agent as a service on the marketplace:
 
 ```ts
-import { ProxyGate } from '@proxygate/sdk';
+import { Proxygate } from '@proxygate/sdk';
 
-await ProxyGate.serve({
+await Proxygate.serve({
   keypair: '~/.proxygate/keypair.json',
   services: [
     {
@@ -253,7 +253,7 @@ await ProxyGate.serve({
 ### Multiple services
 
 ```ts
-await ProxyGate.serve({
+await Proxygate.serve({
   keypair: '~/.proxygate/keypair.json',
   services: [
     { name: 'summarize', port: 3000, price_per_request: 2000 },
@@ -299,12 +299,12 @@ const results = client.vault.verifyReceipts([receipt]);
 ## Error handling
 
 ```ts
-import { ProxyGateError } from '@proxygate/sdk';
+import { ProxygateError } from '@proxygate/sdk';
 
 try {
   await client.proxy('service', '/path', body);
 } catch (err) {
-  if (err instanceof ProxyGateError) {
+  if (err instanceof ProxygateError) {
     console.error(err.code);       // "insufficient_credits"
     console.error(err.action);     // suggested fix
     console.error(err.docs);       // link to docs

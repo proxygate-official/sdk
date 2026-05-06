@@ -1,4 +1,4 @@
-import { ProxyGateError } from './helpers.js';
+import { ProxygateError } from './helpers.js';
 import type {
   VaultBalanceResponse,
   PricingResponse,
@@ -86,7 +86,7 @@ const COMPOSITE_RE = /^([a-z0-9][a-z0-9-]{1,62}[a-z0-9])\/([a-z0-9][a-z0-9-]{1,6
  * If none of those match the input, falls back to {@link resolveByService}
  * (service-name lookup → free-text search) for backwards compat with
  * `client.api('openai')`-style calls. If THAT also returns nothing, throws
- * `ProxyGateError(listing_not_found, 404)`.
+ * `ProxygateError(listing_not_found, 404)`.
  */
 export async function api(deps: ApiMethodDeps, input: string): Promise<ApiListingDetail> {
   // 1. UUID path — direct listing_id filter.
@@ -98,7 +98,7 @@ export async function api(deps: ApiMethodDeps, input: string): Promise<ApiListin
     );
     const listing = result.data[0];
     if (!listing) {
-      throw new ProxyGateError(
+      throw new ProxygateError(
         { error: 'listing_not_found', message: `Listing ${input} not found` },
         404,
       );
@@ -118,7 +118,7 @@ export async function api(deps: ApiMethodDeps, input: string): Promise<ApiListin
     );
     const listing = result.data[0];
     if (!listing) {
-      throw new ProxyGateError(
+      throw new ProxygateError(
         {
           error: 'listing_not_found',
           message: `No listing "${listingSlug}" found for seller "${sellerSlug}"`,
@@ -181,7 +181,7 @@ export async function resolveByService(
   );
   if (bySearch.data.length > 0) return pickFromTies(bySearch.data, seller);
 
-  throw new ProxyGateError(
+  throw new ProxygateError(
     {
       error: 'listing_not_found',
       message: `No listing found for "${nameOrSlug}"`,
@@ -226,7 +226,7 @@ export async function docs(
   listingId: string,
 ): Promise<ListingDocsResponse | null> {
   if (!UUID_RE.test(listingId)) {
-    throw new ProxyGateError(
+    throw new ProxygateError(
       {
         error: 'invalid_listing_id',
         message: 'Docs require a full listing UUID. Use `proxygate apis` to find the ID.',
@@ -242,7 +242,7 @@ export async function docs(
       `/v1/apis/${encodeURIComponent(listingId)}/docs`,
     );
   } catch (err) {
-    if (err instanceof ProxyGateError && err.statusCode === 404) {
+    if (err instanceof ProxygateError && err.statusCode === 404) {
       return null;
     }
     throw err;

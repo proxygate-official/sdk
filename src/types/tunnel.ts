@@ -59,8 +59,8 @@ export interface ServeOptions {
   onRequest?: (requestId: string, service: string, path: string) => void;
 }
 
-/** Options for the static ProxyGate.serve() one-liner. Provide keypair OR apiKey. */
-export interface ProxyGateServeOptions extends ServeOptions {
+/** Options for the static Proxygate.serve() one-liner. Provide keypair OR apiKey. */
+export interface ProxygateServeOptions extends ServeOptions {
   /** Gateway URL (default: https://gateway.proxygate.ai). */
   gatewayUrl?: string;
   /** Path to Solana keypair JSON file. Required for wallet-sig auth. */

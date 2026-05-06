@@ -1,6 +1,6 @@
 /** Options for signRequest. */
 export interface SignRequestOptions {
-  /** ProxyGate gateway base URL (e.g., 'https://gateway.proxygate.ai'). */
+  /** Proxygate gateway base URL (e.g., 'https://gateway.proxygate.ai'). */
   gatewayUrl: string;
   /** Solana wallet public key as base58 string. */
   walletAddress: string;
@@ -19,8 +19,8 @@ export interface AuthHeaders {
 // Client construction options
 // ---------------------------------------------------------------------------
 
-/** Options for constructing a ProxyGateClient directly. */
-export interface ProxyGateClientOptions {
+/** Options for constructing a ProxygateClient directly. */
+export interface ProxygateClientOptions {
   gatewayUrl: string;
   /** API key (starts with pg_live_). Alternative to wallet keypair auth. */
   apiKey?: string;
@@ -124,7 +124,7 @@ export interface ProxyOptions {
   seller?: SellerStrategy;
 }
 
-/** Delegate object exposing ProxyGateClient internals to VaultClient. */
+/** Delegate object exposing ProxygateClient internals to VaultClient. */
 export interface VaultDelegate {
   authenticatedRequest: <T>(
     method: string,

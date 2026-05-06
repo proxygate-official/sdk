@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import nacl from 'tweetnacl';
-import { ProxyGateClient, ProxyGateError } from '../client.js';
+import { ProxygateClient, ProxygateError } from '../client.js';
 
 // ---------------------------------------------------------------------------
 // Phase 51-08: SDK slug-based identifier + smart detection tests
@@ -16,8 +16,8 @@ const testSeed = new Uint8Array(32).fill(7);
 const testKeypair = nacl.sign.keyPair.fromSeed(testSeed);
 const testGatewayUrl = 'http://localhost:3001';
 
-function createClient(): ProxyGateClient {
-  return new ProxyGateClient({
+function createClient(): ProxygateClient {
+  return new ProxygateClient({
     gatewayUrl: testGatewayUrl,
     walletAddress: 'TestWallet51_08',
     secretKey: testKeypair.secretKey,
@@ -322,7 +322,7 @@ describe('Phase 51-08: backwards compatibility', () => {
     expect(result.is_available).toBe(true);
   });
 
-  it('Test 10: input matching neither UUID/SLUG/COMPOSITE falls through to resolveByService and surfaces ProxyGateError when no listing matches', async () => {
+  it('Test 10: input matching neither UUID/SLUG/COMPOSITE falls through to resolveByService and surfaces ProxygateError when no listing matches', async () => {
     // 'BadInput!' has uppercase + special chars — doesn't match SLUG_RE, UUID, or COMPOSITE.
     // Falls through to resolveByService which queries ?service= then ?q= and returns empty data.
     const mockFetch = createMockFetch(new Map([
@@ -332,6 +332,6 @@ describe('Phase 51-08: backwards compatibility', () => {
 
     const client = createClient();
 
-    await expect(client.api('BadInput!')).rejects.toBeInstanceOf(ProxyGateError);
+    await expect(client.api('BadInput!')).rejects.toBeInstanceOf(ProxygateError);
   });
 });

@@ -1,13 +1,13 @@
-# AGENTS.md — ProxyGate SDK for AI Agents
+# AGENTS.md — Proxygate SDK for AI Agents
 
-> Machine-readable instructions for coding agents integrating the ProxyGate SDK.
+> Machine-readable instructions for coding agents integrating the Proxygate SDK.
 > Works with Claude Code, Codex CLI, Gemini CLI, Cursor, and any agent that reads AGENTS.md.
 
 ---
 
-## What is ProxyGate?
+## What is Proxygate?
 
-ProxyGate is a marketplace where sellers list unused API capacity and AI agents purchase access through a transparent proxy. Keys never leave the server. Agents pay with USDC on Solana.
+Proxygate is a marketplace where sellers list unused API capacity and AI agents purchase access through a transparent proxy. Keys never leave the server. Agents pay with USDC on Solana.
 
 ## Install
 
@@ -20,16 +20,16 @@ npm install @proxygate/sdk
 ## Quick Start
 
 ```typescript
-import { ProxyGateClient, parseSSE } from '@proxygate/sdk';
+import { ProxygateClient, parseSSE } from '@proxygate/sdk';
 
 // API key auth (recommended for agents)
-const client = new ProxyGateClient({
+const client = new ProxygateClient({
   gatewayUrl: 'https://gateway.proxygate.ai',
   apiKey: 'pg_live_...',
 });
 
 // Or wallet keypair auth
-const client = await ProxyGateClient.create({
+const client = await ProxygateClient.create({
   gatewayUrl: 'https://gateway.proxygate.ai',
   keypairPath: '~/.proxygate/keypair.json',
 });
@@ -125,7 +125,7 @@ await tunnel.drain(); // Zero-downtime restart
 
 ## Auth Model
 
-ProxyGate uses Solana wallet keypairs for authentication. Every request is signed with ed25519.
+Proxygate uses Solana wallet keypairs for authentication. Every request is signed with ed25519.
 
 ```
 1. Client requests nonce:   GET /v1/nonce?wallet={pubkey}
@@ -134,7 +134,7 @@ ProxyGate uses Solana wallet keypairs for authentication. Every request is signe
 4. Gateway verifies + proxies request
 ```
 
-The SDK handles this automatically via `ProxyGateClient.create()`.
+The SDK handles this automatically via `ProxygateClient.create()`.
 
 For manual signing:
 
@@ -153,12 +153,12 @@ const headers = await signRequest({
 ## Error Handling
 
 ```typescript
-import { ProxyGateError } from '@proxygate/sdk';
+import { ProxygateError } from '@proxygate/sdk';
 
 try {
   await client.proxy('listing-id', '/path');
 } catch (err) {
-  if (err instanceof ProxyGateError) {
+  if (err instanceof ProxygateError) {
     console.error(err.code);       // 'insufficient_credits'
     console.error(err.message);    // 'Not enough USDC'
     console.error(err.action);     // 'Deposit more USDC'
@@ -185,8 +185,8 @@ Key types exported from `@proxygate/sdk`:
 
 ```typescript
 import type {
-  ProxyGateClient,
-  ProxyGateError,
+  ProxygateClient,
+  ProxygateError,
   VaultBalanceResponse,
   ApisResponse,
   ApiListingDetail,

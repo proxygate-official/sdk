@@ -113,7 +113,7 @@ export async function executeWithdraw(
   try {
     await withdrawConfirm(delegate, txSignature);
   } catch (err) {
-    console.warn('[ProxyGate SDK] withdraw confirm failed (non-fatal):', err instanceof Error ? err.message : String(err));
+    console.warn('[Proxygate SDK] withdraw confirm failed (non-fatal):', err instanceof Error ? err.message : String(err));
   }
 
   return {

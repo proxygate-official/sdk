@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import nacl from 'tweetnacl';
-import { ProxyGateClient, ProxyGateError } from './client';
+import { ProxygateClient, ProxygateError } from './client';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -10,8 +10,8 @@ const testSeed = new Uint8Array(32).fill(1);
 const testKeypair = nacl.sign.keyPair.fromSeed(testSeed);
 const testGatewayUrl = 'http://localhost:3001';
 
-function createClient(): ProxyGateClient {
-  return new ProxyGateClient({
+function createClient(): ProxygateClient {
+  return new ProxygateClient({
     gatewayUrl: testGatewayUrl,
     walletAddress: 'TestWallet',
     secretKey: testKeypair.secretKey,
@@ -56,7 +56,7 @@ function createMockFetch(
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('ProxyGateClient', () => {
+describe('ProxygateClient', () => {
   let originalFetch: typeof globalThis.fetch;
 
   beforeEach(() => {
@@ -80,7 +80,7 @@ describe('ProxyGateClient', () => {
     });
 
     it('strips trailing slash from gatewayUrl', () => {
-      const client = new ProxyGateClient({
+      const client = new ProxygateClient({
         gatewayUrl: 'http://localhost:3001/',
         walletAddress: 'TestWallet',
         secretKey: testKeypair.secretKey,
@@ -89,7 +89,7 @@ describe('ProxyGateClient', () => {
     });
 
     it('strips multiple trailing slashes from gatewayUrl', () => {
-      const client = new ProxyGateClient({
+      const client = new ProxygateClient({
         gatewayUrl: 'http://localhost:3001///',
         walletAddress: 'TestWallet',
         secretKey: testKeypair.secretKey,
@@ -124,12 +124,12 @@ describe('ProxyGateClient', () => {
         JSON.stringify(Array.from(testKeypair.secretKey)),
       );
 
-      const client = await ProxyGateClient.create({
+      const client = await ProxygateClient.create({
         gatewayUrl: testGatewayUrl,
         keypairPath: '/tmp/test-keypair.json',
       });
 
-      expect(client).toBeInstanceOf(ProxyGateClient);
+      expect(client).toBeInstanceOf(ProxygateClient);
       expect(client.gatewayUrl).toBe(testGatewayUrl);
       expect(client.walletAddress.length).toBeGreaterThan(0);
     });
@@ -143,7 +143,7 @@ describe('ProxyGateClient', () => {
       vi.mocked(mockedReadFile).mockResolvedValue(JSON.stringify([1, 2, 3]));
 
       await expect(
-        ProxyGateClient.create({
+        ProxygateClient.create({
           gatewayUrl: testGatewayUrl,
           keypairPath: '/tmp/bad-keypair.json',
         }),
@@ -159,7 +159,7 @@ describe('ProxyGateClient', () => {
       vi.mocked(mockedReadFile).mockResolvedValue('not json at all');
 
       await expect(
-        ProxyGateClient.create({
+        ProxygateClient.create({
           gatewayUrl: testGatewayUrl,
           keypairPath: '/tmp/invalid.json',
         }),
@@ -177,7 +177,7 @@ describe('ProxyGateClient', () => {
       );
 
       await expect(
-        ProxyGateClient.create({
+        ProxygateClient.create({
           gatewayUrl: testGatewayUrl,
           keypairPath: '/tmp/nonexistent.json',
         }),
@@ -194,7 +194,7 @@ describe('ProxyGateClient', () => {
         JSON.stringify(Array.from(testKeypair.secretKey)),
       );
 
-      await ProxyGateClient.create({
+      await ProxygateClient.create({
         gatewayUrl: testGatewayUrl,
         keypairPath: '~/test-keypair.json',
       });
@@ -478,7 +478,7 @@ describe('ProxyGateClient', () => {
   // -------------------------------------------------------------------------
 
   describe('error handling', () => {
-    it('throws ProxyGateError on gateway error response', async () => {
+    it('throws ProxygateError on gateway error response', async () => {
       const gatewayError = {
         error: 'insufficient_credits',
         message: 'Not enough credits',
@@ -497,15 +497,15 @@ describe('ProxyGateClient', () => {
         await client.balance();
         expect.fail('Should have thrown');
       } catch (err) {
-        expect(err).toBeInstanceOf(ProxyGateError);
-        const pge = err as ProxyGateError;
+        expect(err).toBeInstanceOf(ProxygateError);
+        const pge = err as ProxygateError;
         expect(pge.code).toBe('insufficient_credits');
         expect(pge.message).toBe('Not enough credits');
         expect(pge.statusCode).toBe(402);
         expect(pge.action).toBe('Deposit more credits');
         expect(pge.docs).toBe('https://docs.proxygate.ai/credits');
         expect(pge.traceId).toBe('trace-123');
-        expect(pge.name).toBe('ProxyGateError');
+        expect(pge.name).toBe('ProxygateError');
       }
     });
 
@@ -530,8 +530,8 @@ describe('ProxyGateClient', () => {
         await client.balance();
         expect.fail('Should have thrown');
       } catch (err) {
-        expect(err).toBeInstanceOf(ProxyGateError);
-        const pge = err as ProxyGateError;
+        expect(err).toBeInstanceOf(ProxygateError);
+        const pge = err as ProxygateError;
         expect(pge.statusCode).toBe(500);
         expect(pge.code).toBe('unknown');
       }
@@ -553,8 +553,8 @@ describe('ProxyGateClient', () => {
         await client.sellerProfile('nonexistent');
         expect.fail('Should have thrown');
       } catch (err) {
-        expect(err).toBeInstanceOf(ProxyGateError);
-        const pge = err as ProxyGateError;
+        expect(err).toBeInstanceOf(ProxygateError);
+        const pge = err as ProxygateError;
         expect(pge.code).toBe('not_found');
         expect(pge.statusCode).toBe(404);
       }
@@ -1141,7 +1141,7 @@ describe('ProxyGateClient', () => {
       expect(result.service).toBe('openai');
     });
 
-    it('throws ProxyGateError 404 when listing not found', async () => {
+    it('throws ProxygateError 404 when listing not found', async () => {
       // Phase 51-08: api() now queries `/v1/apis?listing_id=X&limit=1` directly
       // instead of fetching the whole catalog and filtering client-side. The
       // mock must therefore return an empty array (gateway-side filter miss).
@@ -1156,8 +1156,8 @@ describe('ProxyGateClient', () => {
         await client.api('99999999-9999-9999-9999-999999999999');
         expect.fail('Should have thrown');
       } catch (err) {
-        expect(err).toBeInstanceOf(ProxyGateError);
-        const pge = err as ProxyGateError;
+        expect(err).toBeInstanceOf(ProxygateError);
+        const pge = err as ProxygateError;
         expect(pge.code).toBe('listing_not_found');
         expect(pge.statusCode).toBe(404);
       }
@@ -1202,8 +1202,8 @@ describe('ProxyGateClient', () => {
   describe('apiKey auth', () => {
     const TEST_API_KEY = 'pg_live_test_key_1234567890';
 
-    function createApiKeyClient(): ProxyGateClient {
-      return new ProxyGateClient({
+    function createApiKeyClient(): ProxygateClient {
+      return new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         apiKey: TEST_API_KEY,
       });
@@ -1293,21 +1293,21 @@ describe('ProxyGateClient', () => {
     });
 
     it('throws on invalid apiKey format', () => {
-      expect(() => new ProxyGateClient({
+      expect(() => new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         apiKey: 'bad_key_format',
       })).toThrow('API key must start with pg_live_');
     });
 
     it('throws on apiKey too short', () => {
-      expect(() => new ProxyGateClient({
+      expect(() => new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         apiKey: 'pg_live_x',
       })).toThrow('at least 20 characters');
     });
 
     it('throws when no auth provided', () => {
-      expect(() => new ProxyGateClient({
+      expect(() => new ProxygateClient({
         gatewayUrl: testGatewayUrl,
       })).toThrow('Provide apiKey, delegationToken, or walletAddress + secretKey');
     });
@@ -1332,8 +1332,8 @@ describe('ProxyGateClient', () => {
   describe('dual-mode auth', () => {
     const TEST_API_KEY = 'pg_live_test_key_1234567890';
 
-    function createDualClient(): ProxyGateClient {
-      return new ProxyGateClient({
+    function createDualClient(): ProxygateClient {
+      return new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         apiKey: TEST_API_KEY,
         walletAddress: 'TestWallet',
@@ -1430,16 +1430,16 @@ describe('ProxyGateClient', () => {
     });
 
     it('creates client with delegation token only', () => {
-      const client = new ProxyGateClient({
+      const client = new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         delegationToken: validToken,
       });
-      expect(client).toBeInstanceOf(ProxyGateClient);
+      expect(client).toBeInstanceOf(ProxygateClient);
       expect(client.gatewayUrl).toBe(testGatewayUrl);
     });
 
     it('derives walletAddress from JWT sub claim', () => {
-      const client = new ProxyGateClient({
+      const client = new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         delegationToken: validToken,
       });
@@ -1447,7 +1447,7 @@ describe('ProxyGateClient', () => {
     });
 
     it('throws on delegation token without pg_del_ prefix', () => {
-      expect(() => new ProxyGateClient({
+      expect(() => new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         delegationToken: 'invalid_prefix_token',
       })).toThrow('Delegation token must start with pg_del_');
@@ -1461,7 +1461,7 @@ describe('ProxyGateClient', () => {
       vi.stubGlobal('fetch', mockFetch);
 
       // When both apiKey and delegationToken provided, apiKey wins
-      const client = new ProxyGateClient({
+      const client = new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         apiKey: TEST_API_KEY,
         delegationToken: validToken,
@@ -1484,7 +1484,7 @@ describe('ProxyGateClient', () => {
       });
       vi.stubGlobal('fetch', mockFetch);
 
-      const client = new ProxyGateClient({
+      const client = new ProxygateClient({
         gatewayUrl: testGatewayUrl,
         delegationToken: validToken,
       });
@@ -1500,12 +1500,12 @@ describe('ProxyGateClient', () => {
   });
 
   // -------------------------------------------------------------------------
-  // ProxyGateError class tests
+  // ProxygateError class tests
   // -------------------------------------------------------------------------
 
-  describe('ProxyGateError', () => {
+  describe('ProxygateError', () => {
     it('has correct properties from gateway error', () => {
-      const err = new ProxyGateError(
+      const err = new ProxygateError(
         {
           error: 'test_error',
           message: 'Test message',
@@ -1517,7 +1517,7 @@ describe('ProxyGateClient', () => {
       );
 
       expect(err).toBeInstanceOf(Error);
-      expect(err.name).toBe('ProxyGateError');
+      expect(err.name).toBe('ProxygateError');
       expect(err.code).toBe('test_error');
       expect(err.message).toBe('Test message');
       expect(err.statusCode).toBe(400);
@@ -1527,7 +1527,7 @@ describe('ProxyGateClient', () => {
     });
 
     it('handles minimal gateway error (no optional fields)', () => {
-      const err = new ProxyGateError(
+      const err = new ProxygateError(
         { error: 'unknown', message: 'Something went wrong' },
         500,
       );

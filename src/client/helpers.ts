@@ -5,7 +5,7 @@ import type { GatewayError } from '../types.js';
 // ---------------------------------------------------------------------------
 
 /** Error thrown when the gateway returns a non-OK response. */
-export class ProxyGateError extends Error {
+export class ProxygateError extends Error {
   readonly code: string;
   readonly statusCode: number;
   readonly action?: string;
@@ -14,7 +14,7 @@ export class ProxyGateError extends Error {
 
   constructor(gatewayError: GatewayError, statusCode: number) {
     super(gatewayError.message);
-    this.name = 'ProxyGateError';
+    this.name = 'ProxygateError';
     this.code = gatewayError.error;
     this.statusCode = statusCode;
     this.action = gatewayError.action;
@@ -94,7 +94,7 @@ export async function authenticatedRequest<T>(
     let gatewayError: GatewayError;
     try { gatewayError = JSON.parse(body) as GatewayError; }
     catch { gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` }; }
-    throw new ProxyGateError(gatewayError, response.status);
+    throw new ProxygateError(gatewayError, response.status);
   }
   return (await response.json()) as T;
 }
@@ -117,7 +117,7 @@ export async function bearerRequest<T>(
     let gatewayError: GatewayError;
     try { gatewayError = JSON.parse(body) as GatewayError; }
     catch { gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` }; }
-    throw new ProxyGateError(gatewayError, response.status);
+    throw new ProxygateError(gatewayError, response.status);
   }
   return (await response.json()) as T;
 }
@@ -133,7 +133,7 @@ export async function publicRequest<T>(
     let gatewayError: GatewayError;
     try { gatewayError = JSON.parse(body) as GatewayError; }
     catch { gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` }; }
-    throw new ProxyGateError(gatewayError, response.status);
+    throw new ProxygateError(gatewayError, response.status);
   }
   return (await response.json()) as T;
 }
