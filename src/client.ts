@@ -7,18 +7,17 @@ import { encodeBase58 } from './base58.js';
 import { parseKeypairBytes } from './keypair.js';
 import { VaultClient } from './vault.js';
 import { ListingsClient } from './listings.js';
-import { JobsClient } from './jobs.js';
 import { createTunnelClient } from './tunnel.js';
 import { decodeDelegationToken, isDelegationExpiringSoon } from './auth/delegation.js';
 import {
-  ProxyGateError, bufferToBase64, buildQuery,
+  ProxygateError, bufferToBase64, buildQuery,
   buildUrl, authenticatedRequest, bearerRequest, publicRequest,
 } from './client/helpers.js';
 import * as apiMethods from './client/api-methods.js';
 import type { ApiMethodDeps } from './client/api-methods.js';
 import { proxyRequest } from './client/proxy-methods.js';
 import type {
-  ProxyGateClientOptions, CreateClientOptions, AuthHeaders, VaultDelegate,
+  ProxygateClientOptions, CreateClientOptions, AuthHeaders, VaultDelegate,
   VaultBalanceResponse, PricingResponse, UsageResponse, RateResponse,
   ApisResponse, ServicesResponse, SellerProfileResponse, SettlementsResponse,
   PricingQueryOptions, UsageQueryOptions, ApisQueryOptions, SettlementsQueryOptions,
@@ -26,10 +25,10 @@ import type {
   TunnelServiceConfig, TunnelClient, ServeOptions,
 } from './types.js';
 
-export { ProxyGateError } from './client/helpers.js';
+export { ProxygateError } from './client/helpers.js';
 
 /**
- * Typed client for the ProxyGate API marketplace.
+ * Typed client for the Proxygate API marketplace.
  * Provides methods for all v1 gateway endpoints and listing-centric proxy.
  *
  * Supports four auth modes:
@@ -38,7 +37,7 @@ export { ProxyGateError } from './client/helpers.js';
  * - **Keypair only**: `{ gatewayUrl, walletAddress, secretKey }` — wallet-sig auth (existing)
  * - **Dual mode**: `{ gatewayUrl, apiKey, walletAddress, secretKey }` — Bearer for proxy/reads, keypair for vault ops
  */
-export class ProxyGateClient {
+export class ProxygateClient {
   readonly gatewayUrl: string;
   readonly walletAddress: string;
   private readonly _apiKey?: string;
@@ -47,10 +46,10 @@ export class ProxyGateClient {
   private readonly _noncePool?: NoncePool;
   private _listingCache = new Map<string, { service: string }>();
 
-  constructor(opts: ProxyGateClientOptions) {
+  constructor(opts: ProxygateClientOptions) {
     // Validate at least one auth method
     if (!opts.apiKey && !opts.delegationToken && (!opts.walletAddress || !opts.secretKey)) {
-      throw new ProxyGateError(
+      throw new ProxygateError(
         { error: 'invalid_config', message: 'Provide apiKey, delegationToken, or walletAddress + secretKey. Get started: app.proxygate.ai/wallets' },
         0,
       );
@@ -58,7 +57,7 @@ export class ProxyGateClient {
 
     // Validate apiKey format
     if (opts.apiKey && (!opts.apiKey.startsWith('pg_live_') || opts.apiKey.length < 20)) {
-      throw new ProxyGateError(
+      throw new ProxygateError(
         { error: 'invalid_api_key', message: 'API key must start with pg_live_ and be at least 20 characters. Get a key: app.proxygate.ai/wallets' },
         0,
       );
@@ -67,7 +66,7 @@ export class ProxyGateClient {
     // Validate delegation token format and derive wallet address
     if (opts.delegationToken) {
       if (!opts.delegationToken.startsWith('pg_del_')) {
-        throw new ProxyGateError(
+        throw new ProxygateError(
           { error: 'invalid_delegation_token', message: 'Delegation token must start with pg_del_. Run `proxygate login` to authenticate.' },
           0,
         );
@@ -90,14 +89,14 @@ export class ProxyGateClient {
     }
   }
 
-  static async create(opts: CreateClientOptions): Promise<ProxyGateClient> {
+  static async create(opts: CreateClientOptions): Promise<ProxygateClient> {
     let resolvedPath = opts.keypairPath;
     if (resolvedPath.startsWith('~')) resolvedPath = resolvedPath.replace(/^~/, homedir());
     resolvedPath = resolve(resolvedPath);
     const raw = await readFile(resolvedPath, 'utf-8');
     const secretKey = parseKeypairBytes(raw);
     const publicKey = nacl.sign.keyPair.fromSecretKey(secretKey).publicKey;
-    return new ProxyGateClient({ gatewayUrl: opts.gatewayUrl, walletAddress: encodeBase58(publicKey), secretKey });
+    return new ProxygateClient({ gatewayUrl: opts.gatewayUrl, walletAddress: encodeBase58(publicKey), secretKey });
   }
 
   async proxy(listingId: string, path: string, body?: unknown, options?: ProxyOptions): Promise<Response> {
@@ -119,15 +118,12 @@ export class ProxyGateClient {
   private _listings?: ListingsClient;
   get listings(): ListingsClient { if (!this._listings) this._listings = new ListingsClient(this._vaultDelegate()); return this._listings; }
 
-  private _jobs?: JobsClient;
-  get jobs(): JobsClient { if (!this._jobs) this._jobs = new JobsClient(this._vaultDelegate()); return this._jobs; }
-
   // -------------------------------------------------------------------------
   // Tunnel / Serve
   // -------------------------------------------------------------------------
 
   /**
-   * Expose local services to the ProxyGate network via WebSocket tunnel.
+   * Expose local services to the Proxygate network via WebSocket tunnel.
    * Accepts either API key (bearer auth) or keypair (wallet-sig) for tunnel authentication.
    */
   async serve(
@@ -135,7 +131,7 @@ export class ProxyGateClient {
     options?: ServeOptions,
   ): Promise<TunnelClient> {
     if (!this._apiKey && !this._secretKey) {
-      throw new ProxyGateError(
+      throw new ProxygateError(
         { error: 'auth_required', message: 'Tunnel requires either apiKey or walletAddress + secretKey.' },
         0,
       );
@@ -186,7 +182,7 @@ export class ProxyGateClient {
     }
     if (this._delegationToken) {
       if (isDelegationExpiringSoon(this._delegationToken)) {
-        throw new ProxyGateError(
+        throw new ProxygateError(
           { error: 'delegation_expired', message: 'Delegation token expired or expiring soon. Run `proxygate login` to re-authenticate.' },
           0,
         );
@@ -214,7 +210,7 @@ export class ProxyGateClient {
     }
     if (this._delegationToken) {
       if (isDelegationExpiringSoon(this._delegationToken)) {
-        throw new ProxyGateError(
+        throw new ProxygateError(
           { error: 'delegation_expired', message: 'Delegation token expired or expiring soon. Run `proxygate login` to re-authenticate.' },
           0,
         );

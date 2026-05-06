@@ -4,7 +4,7 @@
 export type {
   SignRequestOptions,
   AuthHeaders,
-  ProxyGateClientOptions,
+  ProxygateClientOptions,
   CreateClientOptions,
   GatewayError,
   SSEEvent,
@@ -107,24 +107,6 @@ export type {
   TunnelRegisteredListing,
   TunnelClient,
   ServeOptions,
-  ProxyGateServeOptions,
+  ProxygateServeOptions,
 } from './types/tunnel.js';
 
-export type {
-  JobStatus,
-  InteractionType,
-  Job,
-  JobSubmission,
-  JobDetail,
-  JobsListOptions,
-  JobsListResponse,
-  CreateJobOptions,
-  CreateJobResponse,
-  ClaimJobResponse,
-  SubmitJobOptions,
-  SubmitJobResponse,
-  AcceptJobResponse,
-  RejectJobOptions,
-  RejectJobResponse,
-  CancelJobResponse,
-} from './types/jobs.js';

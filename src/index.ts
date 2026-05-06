@@ -1,5 +1,5 @@
 // Client
-export { ProxyGateClient, ProxyGateError } from './client.js';
+export { ProxygateClient, ProxygateError } from './client.js';
 
 // Vault
 export { VaultClient, VAULT_CONSTANTS } from './vault.js';
@@ -7,14 +7,11 @@ export { VaultClient, VAULT_CONSTANTS } from './vault.js';
 // Listings
 export { ListingsClient } from './listings.js';
 
-// Jobs
-export { JobsClient } from './jobs.js';
-
 // Tunnel
 export { createTunnelClient } from './tunnel.js';
 
-// ProxyGate namespace (one-liner APIs)
-export { ProxyGate } from './proxygate.js';
+// Proxygate namespace (one-liner APIs)
+export { Proxygate } from './proxygate.js';
 
 // Auth (existing)
 export { signRequest } from './auth.js';
@@ -39,7 +36,7 @@ export { parseSSE } from './stream.js';
 // Types (existing + new)
 export type { SignRequestOptions, AuthHeaders } from './types.js';
 export type {
-  ProxyGateClientOptions,
+  ProxygateClientOptions,
   CreateClientOptions,
   PricingResponse,
   PricingServiceEntry,
@@ -108,22 +105,7 @@ export type {
   TunnelRegisteredListing,
   TunnelClient,
   ServeOptions,
-  ProxyGateServeOptions,
-  JobStatus,
-  InteractionType,
-  Job,
-  JobSubmission,
-  JobDetail,
-  JobsListOptions,
-  JobsListResponse,
-  CreateJobOptions,
-  CreateJobResponse,
-  ClaimJobResponse,
-  SubmitJobOptions,
-  SubmitJobResponse,
-  AcceptJobResponse,
-  RejectJobResponse,
-  CancelJobResponse,
+  ProxygateServeOptions,
   TestListingResponse,
   UploadDocsOptions,
   UploadDocsResponse,
