@@ -602,6 +602,37 @@ describe('ProxygateClient', () => {
       member_since: '2026-01-01',
     };
 
+    it('resolves composite seller-handle/listing-slug via /v1/apis composite filter', async () => {
+      // Regression test: previously proxy() with `seller/slug` input fell through
+      // to resolveByService (service-name search) which can't parse the slash and
+      // returned listing_not_found. Now it routes to fetchApi (= client.api()),
+      // which knows the composite syntax.
+      const mockFetch = createMockFetch(new Map([
+        ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+        ['/proxy/', { status: 200, body: { ok: true } }],
+      ]));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const client = createClient();
+      await client.proxy('blockdb/blockdb-evm-logs', '/v1/evm/raw/logs', { chain_id: 1 });
+
+      const apisCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/v1/apis'),
+      );
+      expect(apisCall).toBeTruthy();
+      const apisUrl = apisCall![0] as string;
+      // Must hit the composite filter, not service= search.
+      expect(apisUrl).toContain('seller_slug=blockdb');
+      expect(apisUrl).toContain('slug=blockdb-evm-logs');
+      expect(apisUrl).not.toContain('service=');
+
+      const proxyCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/proxy/'),
+      );
+      expect(proxyCall).toBeTruthy();
+      expect(proxyCall![0] as string).toContain(`listing=${LISTING_ID}`);
+    });
+
     it('sends POST to /proxy/{service}/{path}?listing={id} with auth headers', async () => {
       const mockFetch = createMockFetch(new Map([
         ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],

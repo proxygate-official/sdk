@@ -11,6 +11,13 @@ export interface ProxyMethodDeps {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Composite seller-handle/listing-slug — same shape as in api-methods.ts.
+// Listed-by-listing requests (proxy/api) accept this form and resolve it via
+// fetchApi (which calls /v1/apis?seller_slug=X&slug=Y). Without this branch,
+// the SDK would fall through to resolveByService and try to interpret the
+// composite as a service-name search, which fails.
+const COMPOSITE_RE = /^([a-z0-9][a-z0-9-]{1,62}[a-z0-9])\/([a-z0-9][a-z0-9-]{1,62}[a-z0-9])$/;
+
 /**
  * Send an authenticated proxy request to a specific listing.
  * Resolves the service slug from listing metadata (cached after first call).
@@ -31,6 +38,14 @@ export async function proxyRequest(
     const cached = listingCache.get(slugKey);
     if (cached) {
       resolvedId = cached.service; // service field stores the resolved UUID for slug entries
+    } else if (COMPOSITE_RE.test(listingId)) {
+      // Composite seller-handle/listing-slug — pin to that specific listing.
+      // fetchApi handles UUID, single-slug, and composite syntax; the seller
+      // strategy is irrelevant when the listing is named explicitly.
+      const listing = await deps.fetchApi(listingId);
+      resolvedId = listing.listing_id;
+      listingCache.set(resolvedId, { service: listing.service });
+      listingCache.set(slugKey, { service: resolvedId });
     } else {
       const resolved = await deps.resolveByService(listingId, seller);
       resolvedId = resolved.listing_id;
