@@ -212,6 +212,39 @@ When multiple sellers offer the same service, `seller` controls which one is pic
 
 When sellers tie on the selected metric, one is picked randomly for load spreading.
 
+## Free tier — zero-deposit calls
+
+Some listings are procured by ProxyGate and free to call (subject to per-wallet
+daily caps). Look for `free_listing_approved: true` on the catalog response:
+
+```ts
+import { Proxygate } from '@proxygate/sdk';
+
+const client = Proxygate.fromKeypair(keypair);
+
+// Discover free listings
+const apis = await client.apis();
+const free = apis.data.filter((l) => l.free_listing_approved === true);
+
+// Call one — no wallet deposit required
+const res = await client.proxy('open-meteo', '/v1/forecast', {
+  latitude: 52.37, longitude: 4.90, current_weather: true,
+}, { listing: free[0].listing_id });
+const forecast = await res.json();
+
+// Hitting the daily cap returns HTTP 429 with code 'daily_free_cap'
+try {
+  // ... 101st call from the same wallet within 24h ...
+} catch (err) {
+  // err.body.error is typed as GatewayErrorCode
+  if (err.body?.error === 'daily_free_cap') {
+    console.log('Free tier exhausted for today — try a paid listing or wait until 00:00 UTC');
+  }
+}
+```
+
+Free calls also surface in `client.usage()` with `is_free: true` and `cost_micro_cents: 0`.
+
 ## Vault
 
 Non-custodial on-chain escrow on Solana. Auto-initializes on first deposit.

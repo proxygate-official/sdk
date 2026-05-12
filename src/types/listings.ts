@@ -35,6 +35,12 @@ export interface ListingSummary {
   seller_slug?: string | null;
   /** Seller's account type. */
   account_type?: 'personal' | 'organization';
+  /**
+   * Phase 51.5: TRUE when ProxyGate has approved this listing for free-tier serving.
+   * Calls do not require a wallet deposit; per-wallet daily caps apply (see error code
+   * `daily_free_cap`). Optional for backward compat with older gateway versions.
+   */
+  free_listing_approved?: boolean;
 }
 
 /** Full listing detail (single listing response). */
@@ -82,6 +88,11 @@ export interface ListingRow {
   seller_slug?: string | null;
   /** Seller's account type. */
   account_type?: 'personal' | 'organization';
+  /**
+   * Phase 51.5: TRUE when ProxyGate has approved this listing for free-tier serving.
+   * Optional — older gateway versions omit the field.
+   */
+  free_listing_approved?: boolean;
   [key: string]: unknown;
 }
 

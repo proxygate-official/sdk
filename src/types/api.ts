@@ -50,6 +50,12 @@ export interface UsageEntry {
   listing_id: string;
   seller_id: string;
   created_at: string;
+  /**
+   * Phase 51.5: TRUE when this request was served by a procured free listing
+   * (free_listing_approved=true). `cost_micro_cents` is always 0 when this is TRUE
+   * — no USDC was charged. Optional for backward compat with older gateways.
+   */
+  is_free?: boolean;
 }
 
 /** Aggregated usage summary per service/model. */
@@ -245,6 +251,17 @@ export interface ApiListingDetail {
   organization?: string | null;
   /** Total number of ratings received. Used to gate aggregateRating JSON-LD. */
   total_ratings?: number;
+
+  // ---------------------------------------------------------------------------
+  // Phase 51.5: procured free listings.
+  // ---------------------------------------------------------------------------
+  /**
+   * TRUE when ProxyGate has approved this listing for free-tier serving (e.g. Open-Meteo).
+   * Calls to free_listing_approved listings do NOT require a wallet deposit; per-wallet
+   * and global daily caps apply (see error codes `daily_free_cap` + `listing_quota_exhausted`).
+   * Optional for backward compat with older gateway versions that don't surface the field.
+   */
+  free_listing_approved?: boolean;
 }
 
 /** GET /v1/apis/:listingId/docs response. */

@@ -42,9 +42,38 @@ export interface CreateClientOptions {
 // Gateway error type
 // ---------------------------------------------------------------------------
 
+/**
+ * Phase 51.5: known gateway error codes that consumers can switch on without
+ * string-comparison drift. Extend additively when new codes ship; downstream
+ * code is expected to handle `string` for unknown codes from newer gateways.
+ *
+ * Mirrors apps/gateway/src/errors/error-catalog.ts.
+ */
+export type GatewayErrorCode =
+  | 'insufficient_credits'
+  | 'rate_limit_exceeded'
+  | 'listing_not_found'
+  | 'listing_required'
+  | 'listing_unavailable'
+  | 'service_unavailable'
+  | 'validation_error'
+  | 'wallet_blocked'
+  | 'cooldown_active'
+  | 'path_not_allowed'
+  | 'deposits_disabled'
+  | 'internal_error'
+  // Phase 51.5: free-tier rate-limit errors
+  | 'daily_free_cap'
+  | 'listing_quota_exhausted';
+
 /** Standard error shape returned by the gateway. */
 export interface GatewayError {
-  error: string;
+  /**
+   * Error code. Use {@link GatewayErrorCode} for the known codes when switching
+   * on this field. Newer gateway versions may emit codes outside the union;
+   * fall back to a default case for those.
+   */
+  error: GatewayErrorCode | string;
   message: string;
   action?: string;
   docs?: string;

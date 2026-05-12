@@ -7,6 +7,7 @@ export type {
   ProxygateClientOptions,
   CreateClientOptions,
   GatewayError,
+  GatewayErrorCode,
   SSEEvent,
   ProxyOptions,
   VaultDelegate,
