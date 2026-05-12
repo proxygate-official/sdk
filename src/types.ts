@@ -20,6 +20,7 @@ export type {
 export type {
   JsonSchema,
   EndpointSpec,
+  EndpointPriceOverride,
   PricingServiceEntry,
   PricingResponse,
   UsageEntry,

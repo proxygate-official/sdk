@@ -110,4 +110,6 @@ export type {
   UploadDocsOptions,
   UploadDocsResponse,
   ListingType,
+  EndpointSpec,
+  EndpointPriceOverride,
 } from './types.js';

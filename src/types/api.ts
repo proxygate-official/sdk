@@ -166,9 +166,14 @@ export interface SellerProfileResponse {
 export interface EndpointPriceOverride {
   path: string;
   pricing_unit: 'per_request' | 'per_token';
+  /** Micro-USDC integer. 0 enables the free-path for this endpoint (Phase 51.5). */
   price_per_request?: number;
   price_per_input_token?: number;
   price_per_output_token?: number;
+  /** Phase 51.5: per-endpoint per-wallet daily cap on free calls. Only meaningful when price_per_request=0. NULL = listing-level fallback (or proxy default 100/day). */
+  daily_cap_per_wallet?: number | null;
+  /** Phase 51.5: per-endpoint global daily cap on free calls. Only meaningful when price_per_request=0. NULL = unlimited (or listing-level fallback). */
+  daily_cap_global?: number | null;
 }
 
 /** All supported listing types. */

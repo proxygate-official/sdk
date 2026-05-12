@@ -1,4 +1,4 @@
-import type { EndpointSpec } from './api.js';
+import type { EndpointSpec, EndpointPriceOverride } from './api.js';
 
 /** Auth pattern for API key injection. */
 export type ListingAuthPattern = 'none' | 'bearer' | 'header' | 'query' | 'basic' | 'oauth2_cc';
@@ -123,6 +123,12 @@ export interface CreateListingOptions {
   price_per_request: number;
   allowed_paths?: string[];
   endpoints?: EndpointSpec[];
+  /** Phase 51.5: per-endpoint pricing overrides. Set price_per_request=0 to mark an endpoint free; daily_cap_* throttle the free traffic. */
+  endpoint_prices?: EndpointPriceOverride[];
+  /** Phase 51.5: listing-level per-wallet daily cap that applies to any endpoint resolving to price=0. NULL = proxy default 100/day. */
+  free_daily_cap_per_wallet?: number | null;
+  /** Phase 51.5: listing-level global daily cap that applies to free traffic. NULL = unlimited. */
+  free_daily_cap_global?: number | null;
   category_slugs: string[];
   validation_endpoint?: string;
   /** Enable Shield request scanning on this listing (protects your API from malicious input). */
@@ -171,6 +177,12 @@ export interface UpdateListingOptions {
   price_per_request?: number;
   allowed_paths?: string[];
   endpoints?: EndpointSpec[];
+  /** Phase 51.5: per-endpoint pricing overrides — replaces the entire array on update. */
+  endpoint_prices?: EndpointPriceOverride[];
+  /** Phase 51.5: listing-level per-wallet daily cap for free endpoints. Pass null to clear. */
+  free_daily_cap_per_wallet?: number | null;
+  /** Phase 51.5: listing-level global daily cap for free endpoints. Pass null to clear. */
+  free_daily_cap_global?: number | null;
   category_slugs?: string[];
   upstream_headers?: Record<string, string>;
   /** Enable Shield request scanning on this listing (protects your API from malicious input). */
