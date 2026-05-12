@@ -16,10 +16,10 @@ Additive, non-breaking (SAFE-06 minor).
 - **Docs**: README has a new "Free tier — zero-deposit calls" example using the
   Open-Meteo procured pilot.
 
-Consumers running against a gateway with Phase 51.5 enabled
-(`GATEWAY_FEATURE_FREE_LISTINGS=true`) can filter
-`free_listing_approved === true` to discover free listings and switch on
-`err.error === 'daily_free_cap'` for friendly UX when the daily cap is hit.
+Consumers can filter `free_listing_approved === true` to discover free listings
+and switch on `err.error === 'daily_free_cap'` for friendly UX when the daily
+cap is hit. Free-listing tier is part of the default gateway surface (no global
+feature flag required).
 
 Older SDK versions continue to work — they simply ignore the new optional fields.
 
