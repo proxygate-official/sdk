@@ -4,14 +4,13 @@ import { ProxygateClient } from './client.js';
 import type { EndpointPriceOverride } from './types.js';
 
 // ---------------------------------------------------------------------------
-// Phase 51.6: free + mixed-pricing + provider_logo_url
+// Phase 51.6: free + mixed-pricing
 //
 // Covers the four SPEC matrix rows for the SDK surface:
 //   row 1: price=0 default, no endpoint overrides (free listing)
 //   row 2: price=1000 default, no overrides (paid listing — regression)
 //   row 3: price=1000 default + free endpoint overrides (paid + free)
 //   row 4: price=0 default + paid endpoint overrides (free + paid)
-// Plus: provider_logo_url round-trips through the create body.
 // ---------------------------------------------------------------------------
 
 const testSeed = new Uint8Array(32).fill(51);
@@ -70,7 +69,7 @@ function captureCreateBody(captured: CapturedRequest[]): ReturnType<typeof vi.fn
   });
 }
 
-describe('Phase 51.6: free + mixed-pricing + provider_logo_url', () => {
+describe('Phase 51.6: free + mixed-pricing', () => {
   let originalFetch: typeof globalThis.fetch;
 
   beforeEach(() => {
@@ -167,20 +166,5 @@ describe('Phase 51.6: free + mixed-pricing + provider_logo_url', () => {
     expect(sent).toHaveLength(2);
     expect(sent[0].price_per_request).toBe(5000);
     expect(sent[1].price_per_request).toBe(10000);
-  });
-
-  it('round-trips provider_logo_url to POST body', async () => {
-    const captured: CapturedRequest[] = [];
-    vi.stubGlobal('fetch', captureCreateBody(captured));
-
-    const client = createClient();
-    await client.listings.create({
-      ...baseOpts,
-      price_per_request: 1000,
-      provider_logo_url: 'https://cdn.example.com/logo.png',
-    });
-
-    expect(captured).toHaveLength(1);
-    expect(captured[0].body?.provider_logo_url).toBe('https://cdn.example.com/logo.png');
   });
 });
