@@ -214,7 +214,7 @@ When sellers tie on the selected metric, one is picked randomly for load spreadi
 
 ## Free tier — zero-deposit calls
 
-Some listings are procured by ProxyGate and free to call (subject to per-wallet
+Some listings are procured by Proxygate and free to call (subject to per-wallet
 daily caps). Look for `free_listing_approved: true` on the catalog response:
 
 ```ts

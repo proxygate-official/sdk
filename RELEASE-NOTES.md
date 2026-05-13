@@ -6,7 +6,7 @@ Additive, non-breaking (SAFE-06 minor).
 
 - **Gateway now accepts `price_per_request = 0`** from any seller. The row is
   created in a "Pending approval" state (`is_active = false`) until an admin
-  flips `free_listing_approved = true`. ProxyGate-curated free listings
+  flips `free_listing_approved = true`. Proxygate-curated free listings
   continue to be activated immediately. JSDoc on `CreateListingOptions.price_per_request`
   documents the new 0-OR->=1000 contract.
 - **Mixed-pricing now works in both directions**: `price_per_request = 1000`

@@ -36,7 +36,7 @@ export interface ListingSummary {
   /** Seller's account type. */
   account_type?: 'personal' | 'organization';
   /**
-   * Phase 51.5: TRUE when ProxyGate has approved this listing for free-tier serving.
+   * Phase 51.5: TRUE when Proxygate has approved this listing for free-tier serving.
    * Calls do not require a wallet deposit; per-wallet daily caps apply (see error code
    * `daily_free_cap`). Optional for backward compat with older gateway versions.
    */
@@ -89,7 +89,7 @@ export interface ListingRow {
   /** Seller's account type. */
   account_type?: 'personal' | 'organization';
   /**
-   * Phase 51.5: TRUE when ProxyGate has approved this listing for free-tier serving.
+   * Phase 51.5: TRUE when Proxygate has approved this listing for free-tier serving.
    * Optional — older gateway versions omit the field.
    */
   free_listing_approved?: boolean;
@@ -124,7 +124,7 @@ export interface CreateListingOptions {
    * Price per request in micro-USDC. Two valid ranges:
    *   * `0` — Phase 51.6: submit as a "Pending approval" free listing. Any seller may
    *           submit; the row is created with `is_active = false` until an admin sets
-   *           `free_listing_approved = true`. ProxyGate-curated free listings (Phase
+   *           `free_listing_approved = true`. Proxygate-curated free listings (Phase
    *           51.5) are activated immediately on creation.
    *   * `>= 1000` — paid listing ($0.001 floor, the smallest math-safe value with
    *           the 5% ceil-rounded fee).
