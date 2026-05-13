@@ -1,5 +1,39 @@
 # @proxygate/sdk release notes
 
+## 0.8.0 — Phase 51.6: open free listings + per-listing branding
+
+Additive, non-breaking (SAFE-06 minor).
+
+- **Gateway now accepts `price_per_request = 0`** from any seller. The row is
+  created in a "Pending approval" state (`is_active = false`) until an admin
+  flips `free_listing_approved = true`. ProxyGate-curated free listings
+  continue to be activated immediately. JSDoc on `CreateListingOptions.price_per_request`
+  documents the new 0-OR->=1000 contract.
+- **Types**: `CreateListingOptions.provider_logo_url?: string | null` and
+  `UpdateListingOptions.provider_logo_url?: string | null` added — pass an
+  HTTPS URL to set a per-listing logo that overrides the seller's avatar in
+  marketplace cards, detail headers, and seller-grid renders. Pass `null` on
+  update to clear; omit to leave unchanged.
+- **Types**: `ApiListingDetail.provider_logo_url?: string | null` and
+  `ListingDetail.provider_logo_url?: string | null` and
+  `ListingRow.provider_logo_url?: string | null` added on the response side
+  so consumers can read the curated-listing logo. Optional for backward compat
+  with older gateway versions.
+- **Mixed-pricing now works in both directions**: `price_per_request = 1000`
+  default + `endpoint_prices[]` with `price_per_request = 0` overrides (paid
+  listing with free endpoints), AND `price_per_request = 0` default +
+  `endpoint_prices[]` with `price_per_request >= 1000` overrides (free listing
+  with paid endpoints). No SDK type change needed — the existing
+  `EndpointPriceOverride.price_per_request: number` already accepts both
+  directions; this entry documents that the gateway now honors both matrices.
+
+Consumers calling `client.listings.create({ price_per_request: 0, provider_logo_url: '...' })`
+land a "Pending approval" row identical to one created via the wizard. Older
+SDK versions continue to work — they simply ignore the new optional fields.
+
+> Publish manually with `pnpm publish --no-git-checks` (NOT `npm publish` — see
+> CLAUDE.md DO list: `npm publish` leaks `workspace:*` into the tarball).
+
 ## 0.7.0 — Phase 51.5: procured free listings
 
 Additive, non-breaking (SAFE-06 minor).

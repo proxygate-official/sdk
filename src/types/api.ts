@@ -267,6 +267,17 @@ export interface ApiListingDetail {
    * Optional for backward compat with older gateway versions that don't surface the field.
    */
   free_listing_approved?: boolean;
+
+  // ---------------------------------------------------------------------------
+  // Phase 51.6: per-listing branding.
+  // ---------------------------------------------------------------------------
+  /**
+   * Optional per-listing logo URL (HTTPS). Marketplace cards, detail headers, and
+   * seller-grid renders prefer this over the seller's avatar. Null/undefined falls
+   * back to the seller avatar → initial bubble. Optional for backward compat with
+   * older gateway versions that don't surface the field.
+   */
+  provider_logo_url?: string | null;
 }
 
 /** GET /v1/apis/:listingId/docs response. */

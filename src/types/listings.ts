@@ -56,6 +56,12 @@ export interface ListingDetail extends ListingSummary {
   oauth2_scopes: string | null;
   upstream_headers?: Record<string, string>;
   sync_status?: 'synced' | 'pending';
+  /**
+   * Phase 51.6: Optional per-listing logo URL (HTTPS). Renders in marketplace card,
+   * detail page, and seller-listings grid in preference to the seller's avatar.
+   * Null/undefined falls back to seller_avatar_url → initial-bubble.
+   */
+  provider_logo_url?: string | null;
 }
 
 /** Raw listing row from gateway (seller_listings + joined service_catalog). */
@@ -93,6 +99,12 @@ export interface ListingRow {
    * Optional — older gateway versions omit the field.
    */
   free_listing_approved?: boolean;
+  /**
+   * Phase 51.6: Optional per-listing logo URL (HTTPS). When set, marketplace cards,
+   * detail headers, and seller-grid renders prefer this over the seller's avatar.
+   * Null/undefined falls back to seller_avatar_url → initial-bubble.
+   */
+  provider_logo_url?: string | null;
   [key: string]: unknown;
 }
 
@@ -120,6 +132,16 @@ export interface CreateListingOptions {
   oauth2_service_account_json?: string;
   total_rpm: number;
   reserved_rpm: number;
+  /**
+   * Price per request in micro-USDC. Two valid ranges:
+   *   * `0` — Phase 51.6: submit as a "Pending approval" free listing. Any seller may
+   *           submit; the row is created with `is_active = false` until an admin sets
+   *           `free_listing_approved = true`. ProxyGate-curated free listings (Phase
+   *           51.5) are activated immediately on creation.
+   *   * `>= 1000` — paid listing ($0.001 floor, the smallest math-safe value with
+   *           the 5% ceil-rounded fee).
+   * Sub-cent values 1-999 are rejected by the gateway.
+   */
   price_per_request: number;
   allowed_paths?: string[];
   endpoints?: EndpointSpec[];
@@ -139,6 +161,13 @@ export interface CreateListingOptions {
   type_metadata?: Record<string, unknown>;
   /** @deprecated Ignored by the server. All listings are tested before activation. */
   skip_test?: boolean;
+  /**
+   * Phase 51.6: Optional per-listing logo URL (HTTPS). Renders in marketplace card,
+   * detail page, and seller-listings grid in preference to the seller's avatar.
+   * Null/undefined falls back to seller_avatar_url → initial-bubble.
+   * Gateway listing-schema validates HTTPS-only.
+   */
+  provider_logo_url?: string | null;
 }
 
 /** Response from create endpoint. */
@@ -187,6 +216,12 @@ export interface UpdateListingOptions {
   upstream_headers?: Record<string, string>;
   /** Enable Shield request scanning on this listing (protects your API from malicious input). */
   shield_enabled?: boolean;
+  /**
+   * Phase 51.6: Optional per-listing logo URL (HTTPS). Pass an HTTPS URL to set;
+   * pass null to clear and fall back to the seller avatar. Omitting the field
+   * leaves the existing value untouched.
+   */
+  provider_logo_url?: string | null;
 }
 
 /** Response from update endpoint. */
