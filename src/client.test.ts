@@ -1108,6 +1108,41 @@ describe('ProxygateClient', () => {
         expect((apisCalls[1][0] as string)).toContain('sort=fastest');
       });
     });
+
+    // Phase 60 Opt #4 regression guard. API-key auth must never trigger a
+    // GET /v1/nonce roundtrip — it adds a full RTT to every proxy call. The
+    // auth path returns `Authorization: Bearer <key>` directly. This test
+    // fails the moment a nonce fetch is reintroduced for API-key clients.
+    describe('API-key auth skips the nonce roundtrip (Opt #4)', () => {
+      const API_KEY = 'pg_live_test_key_1234567890';
+
+      it('never fetches /v1/nonce and sends Bearer auth on proxy()', async () => {
+        const mockFetch = createMockFetch(
+          new Map([
+            ['/v1/apis', { status: 200, body: { data: [LISTING_DATA] } }],
+            ['/proxy/', { status: 200, body: { ok: true } }],
+          ]),
+        );
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = new ProxygateClient({ gatewayUrl: testGatewayUrl, apiKey: API_KEY });
+        await client.proxy(LISTING_ID, '/v1/test', { data: 1 });
+
+        const nonceCall = mockFetch.mock.calls.find((call: unknown[]) =>
+          (call[0] as string).includes('/v1/nonce'),
+        );
+        expect(nonceCall).toBeUndefined();
+
+        const proxyCall = mockFetch.mock.calls.find((call: unknown[]) =>
+          (call[0] as string).includes('/proxy/'),
+        );
+        expect(proxyCall).toBeTruthy();
+        const init = proxyCall![1] as { headers: Record<string, string> };
+        const auth = init.headers['authorization'] ?? init.headers['Authorization'];
+        expect(auth).toBe(`Bearer ${API_KEY}`);
+        expect(init.headers['x-nonce']).toBeUndefined();
+      });
+    });
   });
 
   // -------------------------------------------------------------------------
