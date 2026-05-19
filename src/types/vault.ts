@@ -56,7 +56,20 @@ export type VaultWithdrawResponse =
   | VaultWithdrawGatewayResponse
   | VaultWithdrawCompleteResponse;
 
-/** Signed receipt from a proxy call (returned in x-receipt header). */
+/**
+ * RFC-9345-style delegation proving an ephemeral key may sign receipts.
+ * Present on `receipt_version: 2` receipts (Phase 62).
+ */
+export interface ReceiptDelegation {
+  ephemeral_pubkey: string;
+  purpose: 'proxygate-receipt';
+  not_before: number;
+  not_after: number;
+  signature: string;
+  receipt_ca_pubkey: string;
+}
+
+/** Signed receipt from a proxy call (returned in x-proxygate-receipt header). */
 export interface VaultReceipt {
   request_id: string;
   buyer: string;
@@ -64,6 +77,13 @@ export interface VaultReceipt {
   amount: number;
   timestamp: number;
   signature: string;
+  /**
+   * Absent/1 = legacy treasury-KMS signature (verify vs /health
+   * `platform_pubkey`). 2 = ephemeral-key signature; `delegation` carries
+   * the trust chain anchored at /health `receipt_ca_pubkey`.
+   */
+  receipt_version?: 1 | 2;
+  delegation?: ReceiptDelegation;
 }
 
 /** Options for vault deposit. */

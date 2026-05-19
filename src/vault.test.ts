@@ -426,6 +426,104 @@ describe('vault.verifyReceipts()', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Tests: vault.verifyReceipts() — v2 delegated receipts (Phase 62 Plan 1)
+// ---------------------------------------------------------------------------
+
+function canonicalizeDelegationT(d: {
+  ephemeral_pubkey: string;
+  not_after: number;
+  not_before: number;
+  purpose: string;
+}): Uint8Array {
+  return new TextEncoder().encode(
+    JSON.stringify({
+      ephemeral_pubkey: d.ephemeral_pubkey,
+      not_after: d.not_after,
+      not_before: d.not_before,
+      purpose: d.purpose,
+    }),
+  );
+}
+
+function makeV2Receipt(
+  ephemeral: nacl.SignKeyPair,
+  receiptCa: nacl.SignKeyPair,
+  opts?: { ts?: number; not_before?: number; not_after?: number; purpose?: string },
+): VaultReceipt {
+  const ts = opts?.ts ?? 1700000000;
+  const not_before = opts?.not_before ?? ts - 1000;
+  const not_after = opts?.not_after ?? ts + 1000;
+  const ephemeral_pubkey = encodeBase58(ephemeral.publicKey);
+  const purpose = opts?.purpose ?? 'proxygate-receipt';
+  const delSig = nacl.sign.detached(
+    canonicalizeDelegationT({ ephemeral_pubkey, not_after, not_before, purpose }),
+    receiptCa.secretKey,
+  );
+  const payload = { request_id: 'req-v2', buyer: 'B', seller: 'S', amount: 4242, timestamp: ts };
+  const recSig = nacl.sign.detached(canonicalize(payload), ephemeral.secretKey);
+  return {
+    ...payload,
+    signature: toBase64(recSig),
+    receipt_version: 2,
+    delegation: {
+      ephemeral_pubkey,
+      purpose: purpose as 'proxygate-receipt',
+      not_before,
+      not_after,
+      signature: toBase64(delSig),
+      receipt_ca_pubkey: encodeBase58(receiptCa.publicKey),
+    },
+  };
+}
+
+describe('vault.verifyReceipts() — v2 delegated', () => {
+  let vault: VaultClient;
+  let ephemeral: nacl.SignKeyPair;
+  let receiptCa: nacl.SignKeyPair;
+
+  beforeEach(() => {
+    ephemeral = nacl.sign.keyPair();
+    receiptCa = nacl.sign.keyPair();
+    vault = new VaultClient(createMockDelegate());
+    vault._setReceiptCaPubkey(encodeBase58(receiptCa.publicKey));
+  });
+
+  it('valid v2 receipt passes the full chain', async () => {
+    const [r] = await vault.verifyReceipts([makeV2Receipt(ephemeral, receiptCa)]);
+    expect(r.valid).toBe(true);
+  });
+
+  it('tampered amount fails', async () => {
+    const receipt = makeV2Receipt(ephemeral, receiptCa);
+    receipt.amount = 1;
+    const [r] = await vault.verifyReceipts([receipt]);
+    expect(r.valid).toBe(false);
+  });
+
+  it('forged delegation (attacker receipt-ca) fails', async () => {
+    const attacker = nacl.sign.keyPair();
+    const receipt = makeV2Receipt(ephemeral, attacker);
+    const [r] = await vault.verifyReceipts([receipt]);
+    expect(r.valid).toBe(false);
+    expect(r.reason).toMatch(/pinned|receipt_ca/i);
+  });
+
+  it('timestamp outside delegation window fails', async () => {
+    const receipt = makeV2Receipt(ephemeral, receiptCa, { ts: 1700000000, not_after: 1699999999 });
+    const [r] = await vault.verifyReceipts([receipt]);
+    expect(r.valid).toBe(false);
+    expect(r.reason).toMatch(/window/i);
+  });
+
+  it('wrong purpose fails', async () => {
+    const receipt = makeV2Receipt(ephemeral, receiptCa, { purpose: 'evil' });
+    const [r] = await vault.verifyReceipts([receipt]);
+    expect(r.valid).toBe(false);
+    expect(r.reason).toMatch(/purpose/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Tests: VAULT_CONSTANTS
 // ---------------------------------------------------------------------------
 
