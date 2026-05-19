@@ -22,12 +22,18 @@ export default tseslint.config(
     },
   },
   {
-    // Test files: relax the unbound-context / non-null heuristics that
-    // are noise in vitest specs (mocks, fixtures, `!` on known data).
+    rules: {
+      // `any` is banned everywhere — source AND tests. Use precise
+      // types or `unknown` + narrowing. No exceptions.
+      "@typescript-eslint/no-explicit-any": "error",
+    },
+  },
+  {
+    // Test files: only the non-null heuristic is relaxed (noise on `!`
+    // over known fixture data). `any` stays banned.
     files: ["**/*.test.ts"],
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
-      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 );
