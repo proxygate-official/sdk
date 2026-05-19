@@ -827,15 +827,6 @@ describe('ProxygateClient', () => {
         is_available: true,
         member_since: '2026-01-01',
       };
-      const SELLER2 = {
-        ...SELLER1,
-        listing_id: '22222222-2222-2222-2222-222222222222',
-        seller_wallet: 'Sell...2222',
-        price_per_request_usdc: 0.001,
-        trust_score: 60,
-        badges: [],
-      };
-
       // /v1/apis?service=openai&sort=popular&limit=1 returns SELLER1 (most popular)
       const mockFetch = createMockFetch(new Map([
         ['/v1/apis', { status: 200, body: { data: [SELLER1] } }],

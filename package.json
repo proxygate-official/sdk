@@ -38,6 +38,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test": "vitest run",
     "prepublishOnly": "pnpm build"
   },
@@ -45,8 +46,8 @@
     "tweetnacl": "^1.0.3"
   },
   "peerDependencies": {
-    "@solana/web3.js": "^1.90.0",
-    "@solana/spl-token": "^0.4.0"
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.90.0"
   },
   "peerDependenciesMeta": {
     "@solana/web3.js": {
@@ -57,11 +58,14 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.98.0",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^3.0.0",
+    "eslint": "^9.39.4",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.58.1",
     "vitest": "^3.0.0"
   }
 }
