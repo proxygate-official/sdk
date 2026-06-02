@@ -1,5 +1,34 @@
+import type { components } from '../generated/gateway.js';
+
 /** JSON Schema Draft-07 object (open-ended). */
 export type JsonSchema = Record<string, unknown>;
+
+/**
+ * SDK-CODEGEN drift guards (SAFE-06).
+ *
+ * The hand-written response types in this file remain the AUTHORITATIVE public
+ * SDK surface (so a gateway spec change cannot silently mutate the SDK's public
+ * API — that would be the SAFE-06 drift vector). Where a generated type from the
+ * /v1 OpenAPI spec (`src/generated/gateway.ts`, produced by `pnpm gen:types`
+ * from `apps/gateway/openapi.generated.json`) is provably IDENTICAL to the
+ * hand-written one, we adopt the spec as the source of TRUTH for drift
+ * DETECTION: the bidirectional type-assignability checks below fail to compile
+ * if the gateway response shape and the hand-written SDK type ever diverge,
+ * forcing a conscious, semver-aware update instead of an accidental one.
+ *
+ * Only exact matches get a guard. Types that are looser in the spec (passthrough
+ * `Record`/`unknown`), narrower-by-literal, or carry SDK-only optional fields
+ * stay hand-written WITHOUT a guard and are documented in the codegen report.
+ *
+ * `GeneratedCategoriesResponse` ↔ `CategoriesResponse`: exact match (categories,
+ * has_more, cursor + CategoryEntry/CategorySubcategory clusters). The guard
+ * trips if either side changes shape.
+ */
+type GeneratedCategoriesResponse = components['schemas']['CategoriesResponse'];
+type AssertExtends<A extends B, B> = A;
+// Bidirectional: each must be assignable to the other (i.e. structurally equal).
+type _CategoriesGuardFwd = AssertExtends<CategoriesResponse, GeneratedCategoriesResponse>;
+type _CategoriesGuardRev = AssertExtends<GeneratedCategoriesResponse, CategoriesResponse>;
 
 /** A single documented endpoint on a listing. */
 export interface EndpointSpec {
