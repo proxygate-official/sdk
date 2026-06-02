@@ -47,6 +47,10 @@ export type {
   DatasetMetadata,
   ServiceMetadata,
   ConnectorMetadata,
+  SetContactEmailOptions,
+  SetContactEmailResponse,
+  VerifyContactEmailOptions,
+  VerifyContactEmailResponse,
 } from './types/api.js';
 
 export {

@@ -112,4 +112,8 @@ export type {
   ListingType,
   EndpointSpec,
   EndpointPriceOverride,
+  SetContactEmailOptions,
+  SetContactEmailResponse,
+  VerifyContactEmailOptions,
+  VerifyContactEmailResponse,
 } from './types.js';

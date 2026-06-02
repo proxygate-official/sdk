@@ -357,3 +357,48 @@ export interface CategoriesResponse {
   has_more: boolean;
   cursor: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Fase 1: contact-email capture + verification (Phase 64-ish "email capture")
+//
+// MIGRATION DEBT (Phase 53): the shared `@proxygate/api-types` package does not
+// exist yet, so these wire types are defined LOCALLY here. The SOURCE OF TRUTH
+// for the actual shape is the gateway Zod schema for
+// `POST /v1/profile/email` and `POST /v1/profile/email/verify`. When api-types
+// ships, delete these and import from there. (Mirrors the x402 local-types debt
+// pattern carried in the gateway during Phase 53 bring-up.)
+//
+// Field names below follow the LOCKED CONTRACT defaults; if the gateway schema
+// diverges, align the field names here to the gateway and bump per SAFE-06.
+// ---------------------------------------------------------------------------
+
+/** POST /v1/profile/email — wallet/bearer-authed. Submit a contact email for the caller's wallet. */
+export interface SetContactEmailOptions {
+  /** Contact email to associate with the authenticated wallet. classification:pii */
+  email: string;
+}
+
+/** POST /v1/profile/email response. Intentionally does NOT echo the email back. */
+export interface SetContactEmailResponse {
+  success: boolean;
+}
+
+/** POST /v1/profile/email/verify — wallet/bearer-authed. Confirm ownership via the emailed token. */
+export interface VerifyContactEmailOptions {
+  /** One-time verification token delivered to the submitted email. */
+  token: string;
+}
+
+/**
+ * POST /v1/profile/email/verify response.
+ *
+ * `status` is a closed-ish enum per the contract; treat unknown values
+ * defensively (newer gateways may add states). The `'conflict'` state signals
+ * the heavy web-claim path (email already bound to another identity) — the
+ * gateway also returns a {@link GatewayError} with an `action`/`docs` pointer
+ * in that case, which the SDK propagates unswallowed.
+ */
+export interface VerifyContactEmailResponse {
+  verified: boolean;
+  status: 'verified' | 'invalid' | 'expired' | 'already_used' | 'conflict';
+}

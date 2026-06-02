@@ -64,7 +64,14 @@ export type GatewayErrorCode =
   | 'internal_error'
   // Phase 51.5: free-tier rate-limit errors
   | 'daily_free_cap'
-  | 'listing_quota_exhausted';
+  | 'listing_quota_exhausted'
+  // Fase 1 (contact-email capture): collision on POST /v1/profile/email/verify
+  // when the email is already bound to another identity. Carries an
+  // action/docs pointer to the web-claim flow ("sign in with the original
+  // method, link your wallet in Settings"). The gateway may emit either code;
+  // both are added additively. Source of truth = gateway error-catalog.ts.
+  | 'verification_required'
+  | 'email_conflict';
 
 /** Standard error shape returned by the gateway. */
 export interface GatewayError {

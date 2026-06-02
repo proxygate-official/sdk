@@ -338,6 +338,84 @@ describe('ProxygateClient', () => {
       });
     });
 
+    describe('setContactEmail()', () => {
+      it('POSTs /v1/profile/email with email body and wallet auth', async () => {
+        const mockFetch = createMockFetch(
+          new Map([['/v1/profile/email', { status: 200, body: { success: true } }]]),
+        );
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        const result = await client.setContactEmail({ email: 'agent@example.com' });
+
+        expect(result).toEqual({ success: true });
+
+        const call = mockFetch.mock.calls.find(
+          (c: unknown[]) =>
+            (c[0] as string).includes('/v1/profile/email') &&
+            !(c[0] as string).includes('/verify'),
+        );
+        expect(call).toBeTruthy();
+        const init = call![1] as RequestInit;
+        expect(init.method).toBe('POST');
+        expect(JSON.parse(init.body as string)).toEqual({ email: 'agent@example.com' });
+        // Wallet-sig auth header is attached (keypair client).
+        expect((init.headers as Record<string, string>)['x-wallet']).toBe('TestWallet');
+      });
+    });
+
+    describe('verifyContactEmail()', () => {
+      it('POSTs /v1/profile/email/verify with token body and returns status', async () => {
+        const verifyData = { verified: true, status: 'verified' };
+        const mockFetch = createMockFetch(
+          new Map([['/v1/profile/email/verify', { status: 200, body: verifyData }]]),
+        );
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        const result = await client.verifyContactEmail({ token: 'tok-123' });
+
+        expect(result).toEqual(verifyData);
+
+        const call = mockFetch.mock.calls.find(
+          (c: unknown[]) => (c[0] as string).includes('/v1/profile/email/verify'),
+        );
+        const init = call![1] as RequestInit;
+        expect(init.method).toBe('POST');
+        expect(JSON.parse(init.body as string)).toEqual({ token: 'tok-123' });
+        expect((init.headers as Record<string, string>)['x-wallet']).toBe('TestWallet');
+      });
+
+      it('does NOT swallow a collision error — propagates ProxygateError with code, action, docs', async () => {
+        const conflict = {
+          error: 'verification_required',
+          message: 'This email is already linked to another account.',
+          action: 'Sign in with the original method, then link this wallet in Settings.',
+          docs: 'https://docs.proxygate.ai/email-conflict',
+        };
+        const mockFetch = createMockFetch(
+          new Map([['/v1/profile/email/verify', { status: 409, body: conflict }]]),
+        );
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+
+        try {
+          await client.verifyContactEmail({ token: 'tok-dup' });
+          expect.fail('Should have thrown');
+        } catch (err) {
+          expect(err).toBeInstanceOf(ProxygateError);
+          const pge = err as ProxygateError;
+          expect(pge.code).toBe('verification_required');
+          expect(pge.statusCode).toBe(409);
+          expect(pge.action).toBe(
+            'Sign in with the original method, then link this wallet in Settings.',
+          );
+          expect(pge.docs).toBe('https://docs.proxygate.ai/email-conflict');
+        }
+      });
+    });
+
     describe('apis()', () => {
       it('calls GET /v1/apis without auth (public endpoint)', async () => {
         const apisData = { data: [], cursor: null, has_more: false };

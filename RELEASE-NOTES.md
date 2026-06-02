@@ -1,5 +1,34 @@
 # @proxygate/sdk release notes
 
+## 0.9.0 — Fase 1: contact-email capture
+
+Additive, non-breaking (SAFE-06 minor).
+
+- **New `client.setContactEmail({ email })`** → `POST /v1/profile/email`
+  (wallet/bearer-authed). Submits a contact email for the authenticated wallet
+  and triggers a verification email. Response is `{ success: true }` — the email
+  is intentionally not echoed back.
+- **New `client.verifyContactEmail({ token })`** → `POST /v1/profile/email/verify`
+  (wallet/bearer-authed). Confirms ownership via the emailed token. Returns
+  `{ verified, status: 'verified' | 'invalid' | 'expired' | 'already_used' | 'conflict' }`.
+- **Collision handling (light path only).** When the email is already bound to
+  another identity, the gateway returns an error (`verification_required` /
+  `email_conflict`) carrying an `action`/`docs` pointer to the web-claim flow.
+  The SDK does **not** swallow it — the `ProxygateError` propagates with `code`,
+  `action`, and `docs` intact. The heavy web-claim path itself is Fase 2; the
+  SDK only detects + surfaces.
+- **New types** (re-exported): `SetContactEmailOptions`, `SetContactEmailResponse`,
+  `VerifyContactEmailOptions`, `VerifyContactEmailResponse`. Added
+  `'verification_required'` and `'email_conflict'` to the `GatewayErrorCode`
+  union (additive — unknown codes still fall through to `string`).
+
+> MIGRATION DEBT (Phase 53): `@proxygate/api-types` does not exist yet, so these
+> wire types are defined locally in `src/types/api.ts`. Source of truth for the
+> shape is the gateway Zod schema for `POST /v1/profile/email[/verify]`. When
+> api-types ships, delete the local copies and import from there.
+
+> No exports were removed. Older consumers are unaffected.
+
 ## 0.8.0 — Phase 51.6: open free listings
 
 Additive, non-breaking (SAFE-06 minor).

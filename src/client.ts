@@ -15,6 +15,7 @@ import {
 } from './client/helpers.js';
 import * as apiMethods from './client/api-methods.js';
 import type { ApiMethodDeps } from './client/api-methods.js';
+import * as profileMethods from './client/profile-methods.js';
 import { proxyRequest } from './client/proxy-methods.js';
 import type {
   ProxygateClientOptions, CreateClientOptions, AuthHeaders, VaultDelegate,
@@ -23,6 +24,8 @@ import type {
   PricingQueryOptions, UsageQueryOptions, ApisQueryOptions, SettlementsQueryOptions,
   RateOptions, ProxyOptions, CategoriesResponse, ApiListingDetail, ListingDocsResponse,
   TunnelServiceConfig, TunnelClient, ServeOptions,
+  SetContactEmailOptions, SetContactEmailResponse,
+  VerifyContactEmailOptions, VerifyContactEmailResponse,
 } from './types.js';
 
 export { ProxygateError } from './client/helpers.js';
@@ -166,6 +169,21 @@ export class ProxygateClient {
   async pricing(opts?: PricingQueryOptions): Promise<PricingResponse> { return apiMethods.pricing(this._apiDeps, opts); }
   async usage(opts?: UsageQueryOptions): Promise<UsageResponse> { return apiMethods.usage(this._apiDeps, opts); }
   async rate(opts: RateOptions): Promise<RateResponse> { return apiMethods.rate(this._apiDeps, opts); }
+
+  /**
+   * Submit a contact email for the authenticated wallet (Fase 1 email capture).
+   * Triggers a verification email; confirm with {@link verifyContactEmail}.
+   * Errors propagate as {@link ProxygateError} (not swallowed).
+   */
+  async setContactEmail(opts: SetContactEmailOptions): Promise<SetContactEmailResponse> { return profileMethods.setContactEmail(this._apiDeps, opts); }
+
+  /**
+   * Confirm a contact email using the emailed token (Fase 1 email capture).
+   * On a collision (email bound to another identity) the gateway returns a
+   * {@link ProxygateError} carrying an action/docs web-claim pointer — it is
+   * propagated unswallowed so callers can surface it.
+   */
+  async verifyContactEmail(opts: VerifyContactEmailOptions): Promise<VerifyContactEmailResponse> { return profileMethods.verifyContactEmail(this._apiDeps, opts); }
   async apis(opts?: ApisQueryOptions): Promise<ApisResponse> { return apiMethods.apis(this._apiDeps, opts); }
   async services(): Promise<ServicesResponse> { return apiMethods.services(this._apiDeps); }
   async categories(): Promise<CategoriesResponse> { return apiMethods.categories(this._apiDeps); }
