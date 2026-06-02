@@ -1384,12 +1384,12 @@ export interface components {
         UsageRow: {
             id: string;
             service: string;
-            path: string | null;
+            path: string;
             model: string | null;
-            status_code: number | null;
-            latency_ms: number | null;
-            cost_micro_cents: number | null;
-            listing_id: string | null;
+            status_code: number;
+            latency_ms: number;
+            cost_micro_cents: number;
+            listing_id: string;
             seller_id: string | null;
             created_at: string;
         };
@@ -1597,9 +1597,9 @@ export interface components {
             is_verified: boolean;
         };
         ProfileLatency: {
-            p50: number | null;
-            p95: number | null;
-            p99: number | null;
+            p50: number;
+            p95: number;
+            p99: number;
         } | null;
         SellerProfileError: {
             error: string;
@@ -1622,27 +1622,39 @@ export interface components {
             ata_status?: "active" | "missing" | "unknown";
             ata_action?: string;
         };
-        SettlementDailyRow: {
+        SettlementDailyRow: components["schemas"]["SettlementDailyBuyerRow"] | components["schemas"]["SettlementDailySellerRow"];
+        SettlementDailyBuyerRow: {
             date: string;
-            service: string | null;
+            service: string;
             request_count: number;
+            total_cost_usdc: number;
             total_fees_usdc: number;
-            total_cost_usdc?: number;
-            net_spend_usdc?: number;
-            total_earnings_usdc?: number;
-            net_payout_usdc?: number;
+            net_spend_usdc: number;
         };
-        SettlementSummary: {
-            total_requests: number;
+        SettlementDailySellerRow: {
+            date: string;
+            service: string;
+            request_count: number;
+            total_earnings_usdc: number;
             total_fees_usdc: number;
-            total_cost_usdc?: number;
-            total_earnings_usdc?: number;
+            net_payout_usdc: number;
+        };
+        SettlementSummary: components["schemas"]["SettlementSummaryBuyer"] | components["schemas"]["SettlementSummarySeller"];
+        SettlementSummaryBuyer: {
+            total_requests: number;
+            total_cost_usdc: number;
+            total_fees_usdc: number;
+        };
+        SettlementSummarySeller: {
+            total_requests: number;
+            total_earnings_usdc: number;
+            total_fees_usdc: number;
         };
         SettlementPayout: {
             date: string;
             amount_usdc: number;
             tx_signature: string | null;
-            status: string | null;
+            status: string;
         };
         SettlementHistoryError: {
             error: string;

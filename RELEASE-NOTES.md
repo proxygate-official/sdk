@@ -1,5 +1,37 @@
 # @proxygate/sdk release notes
 
+## 0.11.0 — Drift-guard reconciliation (BREAKING: one nullable widen)
+
+Resolved the SDK-vs-gateway response-type drift per field against PROD column
+reality. All relevant response types are now compile-time drift-guarded against
+the generated /v1 spec.
+
+### BREAKING (consumers must handle null)
+
+- **`UsageEntry.seller_id`: `string` → `string | null`.** The gateway's
+  `api_requests.seller_id` column is nullable (prod-verified), so usage rows can
+  carry a null `seller_id` (e.g. platform/system requests). Anyone reading
+  `usage().usage[].seller_id` must now handle `null`.
+
+This is the ONLY widened (breaking) field. A 0.x minor bump per the package's
+pre-1.0 convention; treated as breaking per SAFE-06 (see note to maintainers).
+
+### Non-breaking (accuracy fixes — gateway SPEC narrowed to match reality, SDK unchanged)
+
+These the gateway already guaranteed non-null; the spec had over-loosely modeled
+them. No SDK type changed; listed for completeness:
+`usage.{path,status_code,latency_ms,cost_micro_cents,listing_id}`, seller-profile
+`latency.{p50,p95,p99}`, settlement `daily.service` + payout `status`.
+
+### Drift guards
+
+Bidirectional/directional `AssertExtends` guards now cover categories, pricing,
+services, balance, sellerProfile, usage, settlements (8 types). `apis` stays
+unguarded pending a shared-`@proxygate/api-types` follow-up (its
+`CatalogListing.listing_type` is `string`; the SDK's `ListingType` enum is
+correct, backed by a DB CHECK). The guards fail to compile if the gateway
+response shape diverges from the hand-written SDK type.
+
 ## 0.10.0 — Username hard-proxy-gate (client side)
 
 Additive, non-breaking (SAFE-06 minor).

@@ -1,5 +1,6 @@
 import type { components } from '../generated/gateway.js';
 import type { VaultBalanceResponse } from './vault.js';
+import type { SettlementsResponse } from './settlement.js';
 
 /** JSON Schema Draft-07 object (open-ended). */
 export type JsonSchema = Record<string, unknown>;
@@ -46,41 +47,39 @@ type _PricingGuard = AssertSpecFitsSdk<components['schemas']['PricingResponse'],
 // the SDK omits). Spec data still fits the SDK type; extra props are allowed.
 type _ServicesGuard = AssertSpecFitsSdk<components['schemas']['ServicesResponse'], ServicesResponse>;
 
-// apis — FLAGGED MISMATCH, no guard. The spec's CatalogListing.listing_type is
-// `string` (gateway reality), but the SDK's ApiListingDetail.listing_type is the
-// narrower `ListingType` union. So real data ('string') does NOT fit the SDK
-// type — the SDK OVER-NARROWS listing_type vs reality. Fixing (widen to string,
-// or keep the union and accept it's aspirational) is a semver decision for the
-// lead; the SDK public type is intentionally left UNCHANGED here.
-// TODO(semver): apis listing_type over-narrowing — see codegen report.
+// apis — FLAGGED (UNGUARDED), but the SDK type is CORRECT, not buggy. The SDK's
+// ApiListingDetail.listing_type is the `ListingType` enum, which IS accurate —
+// seller_listings has a CHECK constraint enforcing exactly that set (prod-
+// verified). The gateway nonetheless EMITS `string` because its response type is
+// the shared `@proxygate/api-types` CatalogListing, whose listing_type is
+// `string` (catalog-enrichment produces String(...)). Guarding would require
+// narrowing that field IN THE SHARED api-types package, which ripples to web —
+// outside this task's gateway+SDK gate. So apis stays unguarded pending that
+// cross-package follow-up. NOT an SDK bug; a gateway-under-claims-via-shared-type.
+// TODO(followup): narrow CatalogListing.listing_type in @proxygate/api-types + re-verify web.
 
 // balance — DIRECTIONAL: spec `currency: 'lamports'` fits SDK `string`; SDK adds
 // optional seller-only fields (pending_payout_usdc/ata_status) the spec lacks.
 type _BalanceGuard = AssertSpecFitsSdk<components['schemas']['VaultBalanceResponse'], VaultBalanceResponse>;
 
-// sellerProfile — FLAGGED MISMATCH, no guard. Spec `latency.{p50,p95,p99}` are
-// `number | null` (handler reality), but the SDK's SellerProfileResponse.latency
-// has them as non-null `number`. The SDK OVER-NARROWS latency nullability vs
-// reality (real null would mis-type to consumers). Fixing → nullable is a
-// breaking change → semver decision for the lead; SDK type left UNCHANGED.
-// TODO(semver): sellerProfile latency nullability — see codegen report.
+// sellerProfile — DIRECTIONAL (resolved): the spec latency inner p50/p95/p99 are
+// now NON-null (narrowed — aggregateListingMetrics returns numbers; the outer
+// `latency` object being null encodes "no data"), matching the SDK. Spec data
+// fits the SDK type (SDK keeps Phase-51 optional fields the spec lacks).
+type _SellerProfileGuard = AssertSpecFitsSdk<components['schemas']['SellerProfileResponse'], SellerProfileResponse>;
 
-// usage — FLAGGED MISMATCH, no guard. Spec UsageRow has
-// path/status_code/latency_ms/cost_micro_cents/listing_id/seller_id as
-// `| null` (api_requests columns), but the SDK's UsageEntry types them non-null
-// and adds `is_free?`. The SDK OVER-NARROWS nullability vs reality. Fixing →
-// nullable is breaking → semver decision for the lead; SDK type left UNCHANGED.
-// TODO(semver): usage nullability — see codegen report.
+// usage — DIRECTIONAL (resolved): the spec UsageRow now matches reality —
+// path/status_code/latency_ms/cost_micro_cents/listing_id NON-null (prod), and
+// the SDK's UsageEntry.seller_id was WIDENED to `string | null` (the one breaking
+// change). SDK keeps an optional `is_free?` the gateway doesn't return — extra
+// optional, so spec data fits the SDK type.
+type _UsageGuard = AssertSpecFitsSdk<components['schemas']['UsageResponse'], UsageResponse>;
 
-// settlements — FLAGGED MISMATCH, no guard (compiler-confirmed fail). The spec's
-// `daily` rows are flat objects with `service: string | null` + optional
-// buyer/seller numeric fields, but the SDK models `daily` as a discriminated
-// union (SettlementDailyBuyer | SettlementDailySeller) with `service: string`
-// (non-null). Spec data does NOT fit the SDK type — first failure is
-// `daily[].service` nullability, also payout `status` (spec `string | null` vs
-// SDK non-null). Same over-narrowing class as usage/sellerProfile. Fixing is a
-// semver decision for the lead; SDK type left UNCHANGED.
-// TODO(semver): settlements daily.service/status nullability + union shape — see codegen report.
+// settlements — DIRECTIONAL (resolved): the spec `daily` is now a union of
+// buyer/seller row schemas (matching the SDK's SettlementDaily union), `service`
+// is NON-null (RPC GROUPs BY a non-null column), and payout `status` is NON-null
+// (prod). Spec data fits the SDK's SettlementsResponse.
+type _SettlementsGuard = AssertSpecFitsSdk<components['schemas']['SettlementHistoryResponse'], SettlementsResponse>;
 
 /** A single documented endpoint on a listing. */
 export interface EndpointSpec {
@@ -129,7 +128,12 @@ export interface UsageEntry {
   latency_ms: number;
   cost_micro_cents: number;
   listing_id: string;
-  seller_id: string;
+  /**
+   * BREAKING (0.11.0): widened to `string | null` to match reality — the
+   * gateway's api_requests.seller_id column is nullable (prod-verified), so this
+   * can be null. Consumers must handle null.
+   */
+  seller_id: string | null;
   created_at: string;
   /**
    * Phase 51.5: TRUE when this request was served by a procured free listing
