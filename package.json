@@ -58,6 +58,7 @@
     }
   },
   "devDependencies": {
+    "@proxygate/api-types": "workspace:*",
     "@eslint/js": "^9.39.4",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.98.0",
