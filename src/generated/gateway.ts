@@ -249,6 +249,360 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/deposit/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm an on-chain USDC deposit into the vault
+         * @description Request body: { "tx_signature": "<64-128 char Solana tx signature>" }. Validation is handler-authoritative; invalid bodies return the invalid_request error envelope.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deposit credited; returns new balance and deposited amount */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DepositConfirmResponse"];
+                    };
+                };
+                /** @description Invalid request, duplicate deposit, TX not found/unconfirmed, TX failed on-chain */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DepositConfirmError"];
+                    };
+                };
+                /** @description Deposit requires wallet signature (API key used) or wallet is blocked */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DepositConfirmForbidden"];
+                    };
+                };
+                /** @description No vault token-balance change found in the transaction */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DepositConfirmError"];
+                    };
+                };
+                /** @description Financial record write failed; deposit not credited */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DepositConfirmError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/x402/topup/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an x402 prepaid top-up (funds the wallet's own vault PDA) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Top-up credited; balance + deposited delta returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["X402TopupConfirmResponse"];
+                    };
+                };
+                /** @description Invalid request, duplicate top-up, tx not found, or tx failed */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Bearer auth rejected (SCOPE-05) or wallet blocked */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["X402DepositRequiresWallet"] | components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description No positive delta on the authed wallet vault PDA */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Financial record write failed; top-up not credited */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the authenticated wallet's vault balance breakdown */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Vault balance breakdown (total, pending settlement, available, cooldown) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VaultBalanceResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Initiate a withdrawal with a 60s cooldown */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No pending calls; cooldown started */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WithdrawReady"];
+                    };
+                };
+                /** @description Cooldown already active, or cooldown started while settling pending calls */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WithdrawCooldown"];
+                    };
+                };
+                /** @description Invalid request body */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Wallet is blocked */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/withdraw/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Build a platform-signed withdraw transaction for the buyer to co-sign */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Platform-signed withdraw transaction */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WithdrawSignResponse"];
+                    };
+                };
+                /** @description Invalid request, cooldown not expired, or insufficient available balance */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Wallet is blocked */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Failed to build withdraw transaction */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/withdraw/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an on-chain withdrawal and reconcile the cached balance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Withdrawal confirmed; reconciled balance returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WithdrawConfirmResponse"];
+                    };
+                };
+                /** @description Invalid request, duplicate confirmation, or no withdrawal detected */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/usage": {
         parameters: {
             query?: never;
@@ -932,6 +1286,95 @@ export interface components {
             error: string;
             message: string;
         };
+        DepositConfirmResponse: {
+            /** @example 5000000 */
+            balance: number;
+            /** @example 2000000 */
+            deposited: number;
+            /** @example aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa */
+            tx_signature: string;
+            /**
+             * @example lamports
+             * @enum {string}
+             */
+            currency: "lamports";
+        };
+        DepositConfirmError: {
+            error: string;
+            message: string;
+            action?: string;
+            docs?: string;
+            trace_id?: string;
+        };
+        DepositConfirmForbidden: {
+            error: string;
+            message: string;
+            auth_method?: string;
+            action?: string;
+            docs?: string;
+            trace_id?: string;
+        };
+        X402TopupConfirmResponse: {
+            balance: number;
+            deposited: number;
+            tx_signature: string;
+            /** @enum {string} */
+            currency: "lamports";
+        };
+        X402DepositRequiresWallet: {
+            /** @enum {string} */
+            error: "deposit_requires_wallet";
+            message: string;
+            /** @enum {string} */
+            auth_method: "bearer";
+            docs: string;
+            trace_id?: string;
+        };
+        VaultBalanceResponse: {
+            /** @example 5000000 */
+            balance: number;
+            /** @example 1000000 */
+            pending_settlement: number;
+            /** @example 4000000 */
+            available: number;
+            /** @example false */
+            in_cooldown: boolean;
+            /**
+             * @example lamports
+             * @enum {string}
+             */
+            currency: "lamports";
+        };
+        WithdrawReady: {
+            /** @enum {string} */
+            status: "ready";
+            message: string;
+            /** @example 60000 */
+            cooldown_ms: number;
+        };
+        WithdrawCooldown: {
+            /** @enum {string} */
+            status: "cooldown_active" | "cooldown_started";
+            message: string;
+            cooldown_remaining_ms?: number;
+            unsettled_calls?: number;
+            cooldown_ms?: number;
+        };
+        WithdrawSignResponse: {
+            /** @example base64-signed-tx-data */
+            transaction: string;
+            /** @example 2000000 */
+            amount: number;
+        };
+        WithdrawConfirmResponse: {
+            /** @example 40000000 */
+            balance: number;
+            /** @example 10000000 */
+            withdrawn: number;
+            tx_signature: string;
+            /** @enum {string} */
+            currency: "lamports";
+        };
         UsageResponse: {
             usage: components["schemas"]["UsageRow"][];
             summary: components["schemas"]["UsageSummaryEntry"][];
@@ -1196,7 +1639,10 @@ export interface components {
             total_earnings_usdc?: number;
         };
         SettlementPayout: {
-            [key: string]: unknown;
+            date: string;
+            amount_usdc: number;
+            tx_signature: string | null;
+            status: string | null;
         };
         SettlementHistoryError: {
             error: string;

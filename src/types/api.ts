@@ -1,4 +1,5 @@
 import type { components } from '../generated/gateway.js';
+import type { VaultBalanceResponse } from './vault.js';
 
 /** JSON Schema Draft-07 object (open-ended). */
 export type JsonSchema = Record<string, unknown>;
@@ -6,29 +7,80 @@ export type JsonSchema = Record<string, unknown>;
 /**
  * SDK-CODEGEN drift guards (SAFE-06).
  *
- * The hand-written response types in this file remain the AUTHORITATIVE public
- * SDK surface (so a gateway spec change cannot silently mutate the SDK's public
- * API — that would be the SAFE-06 drift vector). Where a generated type from the
- * /v1 OpenAPI spec (`src/generated/gateway.ts`, produced by `pnpm gen:types`
- * from `apps/gateway/openapi.generated.json`) is provably IDENTICAL to the
- * hand-written one, we adopt the spec as the source of TRUTH for drift
- * DETECTION: the bidirectional type-assignability checks below fail to compile
- * if the gateway response shape and the hand-written SDK type ever diverge,
- * forcing a conscious, semver-aware update instead of an accidental one.
+ * The hand-written response types remain the AUTHORITATIVE public SDK surface, so
+ * a gateway spec change can NEVER silently mutate the SDK's public API (the
+ * SAFE-06 drift vector). The generated types from the /v1 OpenAPI spec
+ * (`src/generated/gateway.ts`, produced by `pnpm gen:types` from the committed
+ * `apps/gateway/openapi.generated.json`, itself produced by `gen:openapi`) are
+ * the source of TRUTH for drift DETECTION via compile-time assignability checks.
  *
- * Only exact matches get a guard. Types that are looser in the spec (passthrough
- * `Record`/`unknown`), narrower-by-literal, or carry SDK-only optional fields
- * stay hand-written WITHOUT a guard and are documented in the codegen report.
+ * TWO guard flavors:
+ *   - BIDIRECTIONAL (`_X` + `_XRev`): the SDK type and the spec type are
+ *     structurally EQUAL. Trips if either side changes shape.
+ *   - DIRECTIONAL (`AssertSpecFitsSdk`, one check): "real (spec) response data
+ *     is assignable to the SDK's public type" — the consumer-safety invariant
+ *     the SDK exists to guarantee. Used where the SDK is a deliberate looser /
+ *     curated SUBSET view of reality (e.g. SDK `currency: string` vs spec
+ *     literal, SDK omits a spec field, SDK adds optional fields the spec lacks).
+ *     Keeps the SDK public type byte-unchanged (semver 0) while still detecting
+ *     a real-data shape that would no longer fit the SDK's promise.
  *
- * `GeneratedCategoriesResponse` ↔ `CategoriesResponse`: exact match (categories,
- * has_more, cursor + CategoryEntry/CategorySubcategory clusters). The guard
- * trips if either side changes shape.
+ * A guard that cannot be made to compile honestly is a FLAGGED mismatch (a real
+ * SDK-vs-reality bug needing a semver decision), NEVER a reason to edit an SDK
+ * public type. See the codegen report for the flagged cases (usage, settlements).
  */
-type GeneratedCategoriesResponse = components['schemas']['CategoriesResponse'];
 type AssertExtends<A extends B, B> = A;
-// Bidirectional: each must be assignable to the other (i.e. structurally equal).
-type _CategoriesGuardFwd = AssertExtends<CategoriesResponse, GeneratedCategoriesResponse>;
-type _CategoriesGuardRev = AssertExtends<GeneratedCategoriesResponse, CategoriesResponse>;
+/** Directional: SPEC data must be assignable to the SDK type (consumer-safety). */
+type AssertSpecFitsSdk<Spec extends Sdk, Sdk> = Spec;
+
+// categories — BIDIRECTIONAL (exact match: categories/has_more/cursor + clusters).
+type _GenCategories = components['schemas']['CategoriesResponse'];
+type _CategoriesGuardFwd = AssertExtends<CategoriesResponse, _GenCategories>;
+type _CategoriesGuardRev = AssertExtends<_GenCategories, CategoriesResponse>;
+
+// pricing — DIRECTIONAL: spec narrows currency/deposit_endpoint to literals
+// ('USDC' / '/v1/deposit'), which fit the SDK's `string`. SDK is a looser view.
+type _PricingGuard = AssertSpecFitsSdk<components['schemas']['PricingResponse'], PricingResponse>;
+
+// services — DIRECTIONAL: spec is a SUPERSET (exposes `cheapest_buyer_price_usdc`
+// the SDK omits). Spec data still fits the SDK type; extra props are allowed.
+type _ServicesGuard = AssertSpecFitsSdk<components['schemas']['ServicesResponse'], ServicesResponse>;
+
+// apis — FLAGGED MISMATCH, no guard. The spec's CatalogListing.listing_type is
+// `string` (gateway reality), but the SDK's ApiListingDetail.listing_type is the
+// narrower `ListingType` union. So real data ('string') does NOT fit the SDK
+// type — the SDK OVER-NARROWS listing_type vs reality. Fixing (widen to string,
+// or keep the union and accept it's aspirational) is a semver decision for the
+// lead; the SDK public type is intentionally left UNCHANGED here.
+// TODO(semver): apis listing_type over-narrowing — see codegen report.
+
+// balance — DIRECTIONAL: spec `currency: 'lamports'` fits SDK `string`; SDK adds
+// optional seller-only fields (pending_payout_usdc/ata_status) the spec lacks.
+type _BalanceGuard = AssertSpecFitsSdk<components['schemas']['VaultBalanceResponse'], VaultBalanceResponse>;
+
+// sellerProfile — FLAGGED MISMATCH, no guard. Spec `latency.{p50,p95,p99}` are
+// `number | null` (handler reality), but the SDK's SellerProfileResponse.latency
+// has them as non-null `number`. The SDK OVER-NARROWS latency nullability vs
+// reality (real null would mis-type to consumers). Fixing → nullable is a
+// breaking change → semver decision for the lead; SDK type left UNCHANGED.
+// TODO(semver): sellerProfile latency nullability — see codegen report.
+
+// usage — FLAGGED MISMATCH, no guard. Spec UsageRow has
+// path/status_code/latency_ms/cost_micro_cents/listing_id/seller_id as
+// `| null` (api_requests columns), but the SDK's UsageEntry types them non-null
+// and adds `is_free?`. The SDK OVER-NARROWS nullability vs reality. Fixing →
+// nullable is breaking → semver decision for the lead; SDK type left UNCHANGED.
+// TODO(semver): usage nullability — see codegen report.
+
+// settlements — FLAGGED MISMATCH, no guard (compiler-confirmed fail). The spec's
+// `daily` rows are flat objects with `service: string | null` + optional
+// buyer/seller numeric fields, but the SDK models `daily` as a discriminated
+// union (SettlementDailyBuyer | SettlementDailySeller) with `service: string`
+// (non-null). Spec data does NOT fit the SDK type — first failure is
+// `daily[].service` nullability, also payout `status` (spec `string | null` vs
+// SDK non-null). Same over-narrowing class as usage/sellerProfile. Fixing is a
+// semver decision for the lead; SDK type left UNCHANGED.
+// TODO(semver): settlements daily.service/status nullability + union shape — see codegen report.
 
 /** A single documented endpoint on a listing. */
 export interface EndpointSpec {
