@@ -71,7 +71,14 @@ export type GatewayErrorCode =
   // method, link your wallet in Settings"). The gateway may emit either code;
   // both are added additively. Source of truth = gateway error-catalog.ts.
   | 'verification_required'
-  | 'email_conflict';
+  | 'email_conflict'
+  // Username hard-proxy-gate: collision on POST /v1/profile/username
+  // (`username_taken`, 409), and the proxy-path block when a wallet has no
+  // username and the gate is on (`registration_required`, 403; carries an
+  // action pointer to `proxygate init`). Added additively. Source of truth =
+  // gateway error-catalog.ts.
+  | 'username_taken'
+  | 'registration_required';
 
 /** Standard error shape returned by the gateway. */
 export interface GatewayError {

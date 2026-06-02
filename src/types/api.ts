@@ -402,3 +402,14 @@ export interface VerifyContactEmailResponse {
   verified: boolean;
   status: 'verified' | 'invalid' | 'expired' | 'already_used' | 'conflict';
 }
+
+/** POST /v1/profile/username — wallet/bearer-authed. Set the caller's username. */
+export interface SetUsernameOptions {
+  /** Username to set: 3-32 chars, lowercase [a-z0-9], single dashes (no leading/trailing/double dash). */
+  username: string;
+}
+
+/** POST /v1/profile/username response. Intentionally does NOT echo the username back. */
+export interface SetUsernameResponse {
+  success: boolean;
+}

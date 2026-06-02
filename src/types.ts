@@ -51,6 +51,8 @@ export type {
   SetContactEmailResponse,
   VerifyContactEmailOptions,
   VerifyContactEmailResponse,
+  SetUsernameOptions,
+  SetUsernameResponse,
 } from './types/api.js';
 
 export {

@@ -1,5 +1,22 @@
 # @proxygate/sdk release notes
 
+## 0.10.0 — Username hard-proxy-gate (client side)
+
+Additive, non-breaking (SAFE-06 minor).
+
+- **New `client.setUsername({ username })`** → `POST /v1/profile/username`
+  (wallet/bearer-authed). Sets the agent-provided username on the authenticated
+  wallet (a NEW required handle; distinct from the seller slug). Response is
+  `{ success: true }` — the username is intentionally not echoed back.
+- **Errors propagate as `ProxygateError` (not swallowed).** A collision returns
+  `username_taken` (409); a malformed username returns `invalid_request` (400).
+  Callers can switch on `err.code` to re-prompt.
+- **New types** (re-exported): `SetUsernameOptions`, `SetUsernameResponse`. Added
+  `'username_taken'` and `'registration_required'` to the `GatewayErrorCode`
+  union (additive — `registration_required` is what the proxy path returns when
+  the gateway's username gate is on and the wallet has no username; it carries
+  an `action` pointer to `proxygate init`).
+
 ## 0.9.0 — Fase 1: contact-email capture
 
 Additive, non-breaking (SAFE-06 minor).

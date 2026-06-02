@@ -116,4 +116,6 @@ export type {
   SetContactEmailResponse,
   VerifyContactEmailOptions,
   VerifyContactEmailResponse,
+  SetUsernameOptions,
+  SetUsernameResponse,
 } from './types.js';

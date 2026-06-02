@@ -364,6 +364,45 @@ describe('ProxygateClient', () => {
       });
     });
 
+    describe('setUsername()', () => {
+      it('POSTs /v1/profile/username with username body and wallet auth', async () => {
+        const mockFetch = createMockFetch(
+          new Map([['/v1/profile/username', { status: 200, body: { success: true } }]]),
+        );
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        const result = await client.setUsername({ username: 'agent-007' });
+
+        expect(result).toEqual({ success: true });
+
+        const call = mockFetch.mock.calls.find((c: unknown[]) =>
+          (c[0] as string).includes('/v1/profile/username'),
+        );
+        expect(call).toBeTruthy();
+        const init = call![1] as RequestInit;
+        expect(init.method).toBe('POST');
+        expect(JSON.parse(init.body as string)).toEqual({ username: 'agent-007' });
+        // Wallet-sig auth header is attached (keypair client).
+        expect((init.headers as Record<string, string>)['x-wallet']).toBe('TestWallet');
+      });
+
+      it('propagates username_taken as a ProxygateError (not swallowed)', async () => {
+        const mockFetch = createMockFetch(
+          new Map([['/v1/profile/username', {
+            status: 409,
+            body: { error: 'username_taken', message: 'This username is already taken' },
+          }]]),
+        );
+        vi.stubGlobal('fetch', mockFetch);
+
+        const client = createClient();
+        await expect(client.setUsername({ username: 'taken-name' })).rejects.toMatchObject({
+          code: 'username_taken',
+        });
+      });
+    });
+
     describe('verifyContactEmail()', () => {
       it('POSTs /v1/profile/email/verify with token body and returns status', async () => {
         const verifyData = { verified: true, status: 'verified' };

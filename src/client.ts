@@ -26,6 +26,7 @@ import type {
   TunnelServiceConfig, TunnelClient, ServeOptions,
   SetContactEmailOptions, SetContactEmailResponse,
   VerifyContactEmailOptions, VerifyContactEmailResponse,
+  SetUsernameOptions, SetUsernameResponse,
 } from './types.js';
 
 export { ProxygateError } from './client/helpers.js';
@@ -184,6 +185,14 @@ export class ProxygateClient {
    * propagated unswallowed so callers can surface it.
    */
   async verifyContactEmail(opts: VerifyContactEmailOptions): Promise<VerifyContactEmailResponse> { return profileMethods.verifyContactEmail(this._apiDeps, opts); }
+
+  /**
+   * Set the authenticated wallet's username (required when the gateway's
+   * username gate is on; without it the wallet cannot proxy). Errors propagate
+   * as {@link ProxygateError} (not swallowed) — `username_taken` (409) on a
+   * collision, `invalid_request` (400) on a malformed username.
+   */
+  async setUsername(opts: SetUsernameOptions): Promise<SetUsernameResponse> { return profileMethods.setUsername(this._apiDeps, opts); }
   async apis(opts?: ApisQueryOptions): Promise<ApisResponse> { return apiMethods.apis(this._apiDeps, opts); }
   async services(): Promise<ServicesResponse> { return apiMethods.services(this._apiDeps); }
   async categories(): Promise<CategoriesResponse> { return apiMethods.categories(this._apiDeps); }

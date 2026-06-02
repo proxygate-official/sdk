@@ -4,6 +4,8 @@ import type {
   SetContactEmailResponse,
   VerifyContactEmailOptions,
   VerifyContactEmailResponse,
+  SetUsernameOptions,
+  SetUsernameResponse,
 } from '../types.js';
 
 /**
@@ -43,5 +45,26 @@ export function verifyContactEmail(
 ): Promise<VerifyContactEmailResponse> {
   return deps.authenticatedRequest<VerifyContactEmailResponse>('POST', '/v1/profile/email/verify', {
     body: { token: opts.token },
+  });
+}
+
+/**
+ * POST /v1/profile/username — wallet/bearer-authed.
+ *
+ * Sets the agent-provided username on the authenticated wallet (a NEW required
+ * handle; distinct from the seller slug). When the gateway's username gate is
+ * on, a wallet with no username cannot proxy (it returns `registration_required`).
+ *
+ * Errors are NOT swallowed: `deps.authenticatedRequest` throws `ProxygateError`
+ * on any non-OK response, which propagates to the caller. In particular a
+ * collision returns `username_taken` (409) — callers can switch on `err.code`
+ * to re-prompt; an invalid username returns `invalid_request` (400).
+ */
+export function setUsername(
+  deps: ApiMethodDeps,
+  opts: SetUsernameOptions,
+): Promise<SetUsernameResponse> {
+  return deps.authenticatedRequest<SetUsernameResponse>('POST', '/v1/profile/username', {
+    body: { username: opts.username },
   });
 }
