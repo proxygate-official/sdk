@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/nonce": {
+    "/v1/nonce": {
         parameters: {
             query?: never;
             header?: never;
@@ -36,15 +36,33 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_wallet_format",
+                         *       "message": "Invalid wallet address format",
+                         *       "action": "Provide a valid base58-encoded Solana public key (32-44 characters)",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Per-wallet nonce rate limit exceeded */
+                /** @description Rate limit exceeded. */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limit_exceeded",
+                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
+                         *       "action": "Back off and retry after the Retry-After interval.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -58,19 +76,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pricing": {
+    "/v1/pricing": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Available APIs with pricing */
+        /**
+         * Available APIs with pricing
+         * @description Returns the cheapest available price per service across all active sellers, with aggregate capacity and seller counts. Prices are reported in both micro-cents (raw integer) and USDC. This endpoint is public and IP rate-limited; no wallet authentication is required. Results are cursor-paginated. To start spending, fund a wallet via the deposit endpoint named in `deposit_endpoint`. On a transient backend error the endpoint returns 200 with an empty `services` array rather than an error status.
+         */
         get: {
             parameters: {
                 query?: {
+                    /** @description Filter to a single service slug (for example "weather-api"). When omitted, all services are returned. */
                     service?: string;
+                    /** @description Maximum number of services to return per page. Clamped to the range 1 to 100; defaults to 20. */
                     limit?: string;
+                    /** @description Opaque pagination cursor returned as `cursor` in the previous page. Pass it to fetch the next page. */
                     cursor?: string;
                 };
                 header?: never;
@@ -85,6 +109,30 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "services": [
+                         *         {
+                         *           "service": "weather-api",
+                         *           "name": "Weather API",
+                         *           "pricing_unit": "per_request",
+                         *           "price_per_request_micro_cents": 1000,
+                         *           "price_per_request_usdc": 0.001,
+                         *           "price_per_input_token_micro_cents": null,
+                         *           "price_per_output_token_micro_cents": null,
+                         *           "price_per_input_token_usdc": null,
+                         *           "price_per_output_token_usdc": null,
+                         *           "available_rpm": 600,
+                         *           "sellers": 3
+                         *         }
+                         *       ],
+                         *       "has_more": false,
+                         *       "cursor": null,
+                         *       "currency": "USDC",
+                         *       "deposit_endpoint": "/v1/deposit",
+                         *       "last_updated": "2026-06-02T00:00:00.000Z"
+                         *     }
+                         */
                         "application/json": components["schemas"]["PricingResponse"];
                     };
                 };
@@ -98,19 +146,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/categories": {
+    "/v1/categories": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Marketplace categories with listing counts */
+        /**
+         * Marketplace categories with listing counts
+         * @description Returns the marketplace category taxonomy as top-level categories, each with its inline subcategories and the number of active listings in each. Top-level counts include the listings of their subcategories. The taxonomy is cached for five minutes. This endpoint is public and IP rate-limited; no wallet authentication is required. Results are cursor-paginated and an optional `q` parameter filters the tree by name. On a category lookup failure the endpoint returns 500 with an empty `categories` array (the same response shape, not an error envelope).
+         */
         get: {
             parameters: {
                 query?: {
+                    /** @description Maximum number of top-level categories to return per page. Clamped to the range 1 to 100; defaults to 20. */
                     limit?: string;
+                    /** @description Pagination cursor (a category slug) returned as `cursor` in the previous page. Pass it to fetch the next page. */
                     cursor?: string;
+                    /** @description Free-text search across category and subcategory names. Uses semantic vector search when available and falls back to case-insensitive keyword matching. Matching subcategories are returned under their parent category. */
                     q?: string;
                 };
                 header?: never;
@@ -125,6 +179,28 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "categories": [
+                         *         {
+                         *           "slug": "finance",
+                         *           "name": "Finance",
+                         *           "icon": "bank",
+                         *           "listing_count": 12,
+                         *           "subcategories": [
+                         *             {
+                         *               "slug": "crypto-prices",
+                         *               "name": "Crypto Prices",
+                         *               "icon": "coins",
+                         *               "listing_count": 4
+                         *             }
+                         *           ]
+                         *         }
+                         *       ],
+                         *       "has_more": false,
+                         *       "cursor": null
+                         *     }
+                         */
                         "application/json": components["schemas"]["CategoriesResponse"];
                     };
                 };
@@ -147,14 +223,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/sitemap": {
+    "/v1/sitemap": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Sitemap source (active listings + qualifying sellers) */
+        /**
+         * Sitemap source (active listings + qualifying sellers)
+         * @description Returns the raw source data used to build the public XML sitemap: every active listing (with its seller handle and slug) and every seller that qualifies for indexing. A seller qualifies when it has a marketing slug or at least three active listings, a thin-content guardrail. Each entry carries a `lastmod` timestamp for sitemap freshness. This endpoint is public and IP rate-limited; no wallet authentication is required. Responses are cached for five minutes and served with a `Cache-Control: public, max-age=300` header. On a backend error the endpoint still returns 200 with whatever rows were available (empty arrays on full failure).
+         */
         get: {
             parameters: {
                 query?: never;
@@ -171,6 +250,24 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "listings": [
+                         *         {
+                         *           "seller_handle": "acme-data",
+                         *           "slug": "btc-price-feed",
+                         *           "lastmod": "2026-02-18T00:00:00Z"
+                         *         }
+                         *       ],
+                         *       "sellers": [
+                         *         {
+                         *           "handle": "acme-data",
+                         *           "lastmod": "2026-02-18T00:00:00Z"
+                         *         }
+                         *       ],
+                         *       "generated_at": "2026-06-02T00:00:00.000Z"
+                         *     }
+                         */
                         "application/json": components["schemas"]["SitemapResponse"];
                     };
                 };
@@ -184,14 +281,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/apis/{listingId}/docs": {
+    "/v1/apis/{listingId}/docs": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get public documentation for a listing */
+        /**
+         * Get public documentation for a listing
+         * @description Returns the seller-provided documentation for a single listing, identified by its UUID. Documentation is either an OpenAPI specification or Markdown (see `doc_type`); when the document is an OpenAPI spec, `parsed_endpoints` carries the extracted endpoint list. This endpoint is public and IP rate-limited; no wallet authentication is required. A malformed listing ID returns 400, a listing with no documentation returns 404, and a backend failure returns 500.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -218,7 +318,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DocsErrorResponse"];
+                        /**
+                         * @example {
+                         *       "error": "invalid_listing_id",
+                         *       "message": "Listing ID must be a valid UUID"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description No documentation found for this listing */
@@ -227,7 +333,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DocsErrorResponse"];
+                        /**
+                         * @example {
+                         *       "error": "docs_not_found",
+                         *       "message": "No documentation found for this listing"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Lookup failed */
@@ -236,7 +348,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DocsErrorResponse"];
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "Failed to fetch docs"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -249,7 +367,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/deposit/confirm": {
+    "/v1/deposit/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -324,7 +442,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/x402/topup/confirm": {
+    "/v1/x402/topup/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -396,7 +514,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/balance": {
+    "/v1/balance": {
         parameters: {
             query?: never;
             header?: never;
@@ -432,7 +550,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/withdraw": {
+    "/v1/withdraw": {
         parameters: {
             query?: never;
             header?: never;
@@ -495,7 +613,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/withdraw/sign": {
+    "/v1/withdraw/sign": {
         parameters: {
             query?: never;
             header?: never;
@@ -558,7 +676,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/withdraw/confirm": {
+    "/v1/withdraw/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -603,17 +721,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/usage": {
+    "/v1/usage": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get the authenticated wallet's usage analytics */
+        /**
+         * Get the authenticated wallet's usage analytics
+         * @description Returns the authenticated wallet's own proxy request history as cursor-paginated rows, plus a summary that aggregates request counts and total cost per service and model across the full filtered range (not just the current page). Costs are reported in micro-cents. Requires wallet authentication; a wallet can only read its own usage. Optional `service`, `model`, `from`, and `to` parameters narrow the result. On a query failure the endpoint returns 500 with an empty page and an `error` message (the same response shape, not an error envelope).
+         */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description Filter usage rows and the summary to a single service slug. */
+                    service?: string;
+                    /** @description Filter usage rows and the summary to a single model (for per-token services). */
+                    model?: string;
+                    /** @description Inclusive lower bound on `created_at` (ISO 8601). Only requests at or after this time are included. */
+                    from?: string;
+                    /** @description Inclusive upper bound on `created_at` (ISO 8601). Only requests at or before this time are included. */
+                    to?: string;
+                    /** @description Maximum number of usage rows to return per page. Clamped to the range 1 to 100; defaults to 50. */
+                    limit?: string;
+                    /** @description Pagination cursor (the `id` of the last row from the previous page). Pass it to fetch the next page. */
+                    cursor?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -626,6 +760,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "usage": [
+                         *         {
+                         *           "id": "22222222-2222-2222-2222-222222222222",
+                         *           "service": "weather-api",
+                         *           "path": "/current",
+                         *           "model": null,
+                         *           "status_code": 200,
+                         *           "latency_ms": 118,
+                         *           "cost_micro_cents": 1050,
+                         *           "listing_id": "11111111-1111-1111-1111-111111111111",
+                         *           "seller_id": "33333333-3333-3333-3333-333333333333",
+                         *           "created_at": "2026-06-02T12:30:00Z"
+                         *         }
+                         *       ],
+                         *       "summary": [
+                         *         {
+                         *           "service": "weather-api",
+                         *           "model": null,
+                         *           "request_count": 42,
+                         *           "total_cost_micro_cents": 44100
+                         *         }
+                         *       ],
+                         *       "has_more": false,
+                         *       "cursor": null
+                         *     }
+                         */
                         "application/json": components["schemas"]["UsageResponse"];
                     };
                 };
@@ -648,7 +810,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/rate": {
+    "/v1/rate": {
         parameters: {
             query?: never;
             header?: never;
@@ -657,7 +819,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Rate a seller after a successful proxy request */
+        /**
+         * Rate a seller after a successful proxy request
+         * @description Submits a thumbs-up or thumbs-down rating for the seller behind a specific past proxy request. The request body is `{ "request_id": "<uuid>", "is_positive": <boolean> }`. Requires wallet authentication: a wallet can only rate its own requests, the request must have completed successfully, the rating window is 24 hours from the request, and a minimum cumulative spend of $1.00 on the listing is required. Submitting again for the same request updates the existing rating (the response then reports `is_update: true`). All rejection cases return a structured error envelope with the code `validation_error` and a descriptive message.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -673,6 +838,12 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "is_update": false
+                         *     }
+                         */
                         "application/json": components["schemas"]["RateResponse"];
                     };
                 };
@@ -682,6 +853,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_error",
+                         *       "message": "Invalid request body: request_id (uuid) and is_positive (boolean) required",
+                         *       "action": "Check request body against API documentation",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -691,6 +871,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_error",
+                         *       "message": "Wallet authentication required",
+                         *       "action": "Check request body against API documentation",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -700,6 +889,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_error",
+                         *       "message": "Cannot rate requests from other wallets",
+                         *       "action": "Check request body against API documentation",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -709,6 +907,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_error",
+                         *       "message": "Request not found",
+                         *       "action": "Check request body against API documentation",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -720,37 +927,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/apis": {
+    "/v1/apis": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Paginated, filterable API catalog with real-time availability */
+        /**
+         * Paginated, filterable API catalog with real-time availability
+         * @description Returns the marketplace catalog of individual listings with real-time availability, pricing, trust scores, and badges. Each row reports both the seller price and the buyer price (seller price plus the platform fee). The catalog supports rich filtering, full-text and semantic search via `q`, and several sort orders. Tunnel listings are excluded by default unless `type=tunnel` or a specific `listing_id` is requested. This endpoint is public and IP rate-limited; no wallet authentication is required. Results are cursor-paginated (pass the returned `cursor` to fetch the next page) and cached for thirty seconds. On a query failure the endpoint returns 500 with an empty `data` array and an `error` message.
+         */
         get: {
             parameters: {
                 query?: {
+                    /** @description Filter to a single service slug (for example "weather-api"). */
                     service?: string;
+                    /** @description Filter by the upstream auth pattern (for example "api_key" or "oauth2"). */
                     auth_pattern?: string;
+                    /** @description Filter by pricing model (for example "per_request" or "per_token"). */
                     pricing_model?: string;
+                    /** @description Only return listings with at least this uptime percentage (0 to 100). */
                     min_uptime?: string;
+                    /** @description Only return listings whose average latency in milliseconds is at most this value. */
                     max_latency?: string;
+                    /** @description Only return listings whose buyer price per request in micro-USDC is at most this value. */
                     max_price?: string;
+                    /** @description Only return listings whose seller trust score is at least this value (0 to 100). */
                     min_trust_score?: string;
+                    /** @description Only return listings whose average rating percentage is at least this value (0 to 100). */
                     min_rating?: string;
+                    /** @description When "true", only return listings whose seller carries at least one badge. */
                     has_badges?: string;
+                    /** @description Comma-separated badge IDs that the seller must carry (for example "reliable,veteran"). */
                     badges?: string;
+                    /** @description When "true", only return listings that support streaming responses. */
                     supports_streaming?: string;
+                    /** @description When "true", only return listings from admin-verified sellers. */
                     verified?: string;
+                    /** @description Free-text search across service name, service slug, and description. Combines semantic vector search with exact keyword matching. Capped at 500 characters. */
                     q?: string;
+                    /** @description Comma-separated category slugs; matches listings in any of the given categories. */
                     category?: string;
+                    /** @description Sort order: "price_asc", "price_desc", "popular", "newest", "fastest", or "best_rated". When omitted, a composite ranking is used that floats curated and high-trust listings to the top. */
                     sort?: string;
+                    /** @description Filter by listing type (for example "api" or "tunnel"). Tunnel listings are excluded unless requested. */
                     type?: string;
+                    /** @description Look up a single listing by its UUID. Returns at most one row. */
                     listing_id?: string;
+                    /** @description Filter by listing kebab-case slug. Composes with `seller_slug` to resolve a listing under a seller. Must be kebab-case. */
                     slug?: string;
+                    /** @description Filter by seller kebab-case slug. Composes with `slug`. Must be kebab-case. */
                     seller_slug?: string;
+                    /** @description Opaque pagination cursor returned as `cursor` in the previous page. Pass it to fetch the next page. */
                     cursor?: string;
+                    /** @description Maximum number of listings to return per page. Clamped to the range 1 to 100; defaults to 20. */
                     limit?: string;
                 };
                 header?: never;
@@ -765,6 +996,68 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "data": [
+                         *         {
+                         *           "listing_id": "11111111-1111-1111-1111-111111111111",
+                         *           "seller_wallet": "7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2",
+                         *           "service": "weather-api",
+                         *           "service_name": "Weather API",
+                         *           "auth_pattern": "api_key",
+                         *           "pricing_unit": "per_request",
+                         *           "price_per_request_usdc": 0.001,
+                         *           "price_per_input_token_usdc": null,
+                         *           "price_per_output_token_usdc": null,
+                         *           "buyer_price_per_request_usdc": 0.00105,
+                         *           "buyer_price_per_input_token_usdc": null,
+                         *           "buyer_price_per_output_token_usdc": null,
+                         *           "platform_fee_pct": 5,
+                         *           "available_rpm": 600,
+                         *           "uptime_percent": 99.9,
+                         *           "avg_latency_ms": 120,
+                         *           "trust_score": 87,
+                         *           "badges": [
+                         *             "reliable",
+                         *             "veteran"
+                         *           ],
+                         *           "avg_rating_percent": 96,
+                         *           "description": "Global current-conditions and forecast weather data.",
+                         *           "is_available": true,
+                         *           "member_since": "2026-01-04T00:00:00Z",
+                         *           "category_slugs": [
+                         *             "weather"
+                         *           ],
+                         *           "endpoints": [
+                         *             {
+                         *               "method": "GET",
+                         *               "path": "/current",
+                         *               "description": "Current conditions for a location."
+                         *             }
+                         *           ],
+                         *           "endpoint_prices": [],
+                         *           "has_docs": true,
+                         *           "is_verified": true,
+                         *           "listing_type": "api",
+                         *           "type_metadata": null,
+                         *           "slug": "global-weather",
+                         *           "seller_slug": "acme-data",
+                         *           "seller_account_type": "organization",
+                         *           "seller_organization": "Acme Data Inc.",
+                         *           "seller_avatar_url": null,
+                         *           "provider_logo_url": null,
+                         *           "is_partner": false,
+                         *           "free_listing_approved": false
+                         *         }
+                         *       ],
+                         *       "cursor": "vs:verified:11111111-1111-1111-1111-111111111111",
+                         *       "has_more": true,
+                         *       "filters_applied": {
+                         *         "service": "weather-api",
+                         *         "sort": "best_rated"
+                         *       }
+                         *     }
+                         */
                         "application/json": components["schemas"]["CatalogResponse"];
                     };
                 };
@@ -774,7 +1067,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CatalogValidationError"];
+                        /**
+                         * @example {
+                         *       "error": "invalid_slug",
+                         *       "message": "Slug must be kebab-case"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Catalog query failed */
@@ -796,18 +1095,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/services": {
+    "/v1/services": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Service-level aggregate stats across all sellers */
+        /**
+         * Service-level aggregate stats across all sellers
+         * @description Returns one aggregate row per service, summarizing all active sellers of that service: the cheapest seller price and the equivalent buyer price (seller price plus the platform fee), the number of active sellers, and the total available capacity in requests per minute. The buyer price is what a buyer is charged; the difference is the Proxygate platform fee. This endpoint is public and IP rate-limited; no wallet authentication is required. Results are cursor-paginated and cached for sixty seconds.
+         */
         get: {
             parameters: {
                 query?: {
+                    /** @description Maximum number of services to return per page. Clamped to the range 1 to 100; defaults to 20. */
                     limit?: string;
+                    /** @description Pagination cursor returned as `cursor` in the previous page. Pass it to fetch the next page. */
                     cursor?: string;
                 };
                 header?: never;
@@ -822,6 +1126,28 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "services": [
+                         *         {
+                         *           "service": "openai",
+                         *           "service_name": "OpenAI",
+                         *           "cheapest_price_usdc": 0.002,
+                         *           "cheapest_buyer_price_usdc": 0.0021,
+                         *           "avg_latency_ms": 0,
+                         *           "active_seller_count": 5,
+                         *           "total_capacity_rpm": 1200,
+                         *           "avg_uptime_percent": 0,
+                         *           "avg_rating": 0,
+                         *           "best_rated_seller_wallet": "",
+                         *           "pricing_units": "per_token"
+                         *         }
+                         *       ],
+                         *       "has_more": false,
+                         *       "cursor": null,
+                         *       "count": 1
+                         *     }
+                         */
                         "application/json": components["schemas"]["ServicesResponse"];
                     };
                 };
@@ -844,14 +1170,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/seller/profile/by-handle/{handle}": {
+    "/v1/seller/profile/by-handle/{handle}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Resolve a handle (slug or wallet) to a public seller profile */
+        /**
+         * Resolve a handle (slug or wallet) to a public seller profile
+         * @description Resolves a public handle (kebab-case slug or base58 wallet) to a seller profile, including the seller display fields, verification status, and active listings. Returns the canonical handle and path so clients can redirect wallet-keyed lookups to the slug. No authentication required.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -878,16 +1207,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileByHandleError"];
+                        /**
+                         * @example {
+                         *       "error": "invalid_handle",
+                         *       "message": "Handle must be a kebab-case slug or base58 wallet",
+                         *       "action": "Provide a kebab-case slug or base58 wallet address and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Seller profile not found */
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileByHandleError"];
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -900,14 +1247,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/seller/profile/{wallet}": {
+    "/v1/seller/profile/{wallet}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get a public seller profile with reputation */
+        /**
+         * Get a public seller profile with reputation
+         * @description Public seller profile keyed by base58 wallet. Returns reputation aggregates (trust score, badges, ratings) and, for established sellers, uptime and latency percentiles. Latency and uptime are masked (null) until the seller crosses the new-seller request threshold. No authentication required.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -934,16 +1284,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SellerProfileError"];
+                        /**
+                         * @example {
+                         *       "error": "invalid_wallet",
+                         *       "message": "Invalid Solana wallet address",
+                         *       "action": "Provide a valid base58 Solana wallet address and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Seller not found */
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SellerProfileError"];
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -956,7 +1324,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/settlement/history": {
+    "/v1/settlement/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -988,7 +1356,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SettlementHistoryError"];
+                        /**
+                         * @example {
+                         *       "error": "invalid_range",
+                         *       "message": "Maximum date range is 90 days",
+                         *       "action": "Narrow the from/to window to at most 90 days and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1001,14 +1378,870 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/me": {
+    "/v1/listings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get the authenticated wallet's own profile */
+        /**
+         * List the authenticated wallet's listings
+         * @description Returns every active (non-deleted) listing owned by the authenticated wallet. Sensitive fields (credentials, upstream headers, auth config) are never returned. The joined service-catalog entry is flattened onto each row as service_slug, service_name, and service_base_url.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The wallet's listings */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListListingsResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a listing
+         * @description Creates a new listing for the authenticated wallet. The credential is validated against the upstream before storage, then the listing is created inactive and its endpoints are probed. The listing goes live only when every probe passes and moderation is off; otherwise it stays pending and the response carries an activation_hint. Requires the listings:write scope.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listing created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreateListingResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Wallet blocked from creating listings */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Unprocessable: credential or upstream validation failed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_failed",
+                         *       "message": "The provided credential could not be validated against the upstream service.",
+                         *       "action": "Check the credential and upstream URL, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/listings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a single listing detail
+         * @description Returns the full detail for one listing owned by the authenticated wallet, including the nested service-catalog entry and the listing category slugs. A listing owned by a different wallet returns 404 (ownership is never leaked). Credentials, upstream headers, and auth config are never returned.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The listing detail */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingDetailResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Soft-delete a listing
+         * @description Soft-deletes a listing owned by the authenticated wallet: it is marked deleted and inactive, removed from the routing cache, and its stored credential is deleted from the secret manager. Requires the listings:write scope.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listing deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeleteListingResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Partially update a listing
+         * @description Partially updates a listing owned by the authenticated wallet (description, capacity, price, allowed paths, endpoints, shield, categories). Only the supplied fields change. When the listing is active the change is re-synced to the routing cache. Requires the listings:write scope.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listing updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UpdateListingResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/listings/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pause a listing
+         * @description Pauses an active listing owned by the authenticated wallet: it is marked inactive and removed from the routing cache so it stops receiving traffic. Requires the listings:write scope.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listing paused */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PauseListingResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/listings/{id}/unpause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unpause a listing
+         * @description Re-activates a paused listing owned by the authenticated wallet and re-syncs it to the routing cache. The listing must already have validated endpoints and, under moderation, must be admin-approved. Requires the listings:write scope.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listing unpaused */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UnpauseListingResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/listings/{id}/rotate-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate a listing credential
+         * @description Replaces the stored credential (API key or OAuth2 client credentials) for a listing owned by the authenticated wallet. The new credential is validated against the upstream before it is written to the secret manager, and any cached OAuth2 token is invalidated. Requires the keys:upload scope.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Credential rotated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RotateKeyResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Unprocessable: credential or upstream validation failed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_failed",
+                         *       "message": "The provided credential could not be validated against the upstream service.",
+                         *       "action": "Check the credential and upstream URL, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/listings/{id}/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload OpenAPI or markdown docs for a listing
+         * @description Uploads OpenAPI or markdown documentation for a listing owned by the authenticated wallet. For an OpenAPI spec, endpoints are parsed and, if the listing had none, synced and probed; the test_results trio is then present in the response. Requires the listings:write scope.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Docs stored */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UploadDocsResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/listings/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-test a listing and activate if validated
+         * @description Re-probes the stored endpoints of a listing owned by the authenticated wallet. When every probe passes and moderation allows it, the listing is marked validated and activated and synced to the routing cache. Requires the listings:write scope.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listing tested */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestListingResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not found: the resource does not exist or is not owned by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "not_found",
+                         *       "message": "The requested resource was not found.",
+                         *       "action": "Verify the id and that it belongs to the authenticated wallet.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the authenticated wallet's own profile
+         * @description Returns the calling identity profile (wallet, display name, created_at, auth method). Requires authentication via a wallet signature or an API key bearer token.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -1027,12 +2260,21 @@ export interface paths {
                         "application/json": components["schemas"]["MeResponse"];
                     };
                 };
-                /** @description Lookup failed */
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
                 500: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -1046,7 +2288,247 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profile/username": {
+    "/v1/profile/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the authenticated wallet's contact email for verification
+         * @description Submits a contact email for the authenticated wallet and triggers a verification email. The email is never echoed back in the response. Requires a wallet signature.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Verification email triggered */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProfileEmailResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Email already verified on another profile */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "email_conflict",
+                         *       "message": "This email is already verified on another profile.",
+                         *       "action": "Use a different email address, or sign in with the wallet that owns it.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Resend cooldown active */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limited",
+                         *       "message": "A verification email was sent recently. Wait before requesting another.",
+                         *       "action": "Wait for the resend cooldown to elapse, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service unavailable: a dependency is degraded or the feature is disabled. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "service_unavailable",
+                         *       "message": "The service is temporarily unavailable.",
+                         *       "action": "Retry after a short delay.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profile/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem an email verification token
+         * @description Redeems an email verification token for the authenticated wallet. Neither the email nor the token is echoed in the response. Requires a wallet signature.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Verification result (always 2xx for the structured body) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProfileEmailResponse"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Email already verified on another profile */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "email_conflict",
+                         *       "message": "This email is already verified on another profile.",
+                         *       "action": "Use a different email address, or sign in with the wallet that owns it.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service unavailable: a dependency is degraded or the feature is disabled. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "service_unavailable",
+                         *       "message": "The service is temporarily unavailable.",
+                         *       "action": "Retry after a short delay.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profile/username": {
         parameters: {
             query?: never;
             header?: never;
@@ -1057,7 +2539,7 @@ export interface paths {
         put?: never;
         /**
          * Set the authenticated wallet's username
-         * @description Request body: { "username": "<3-32 chars, lowercase [a-z0-9], single dashes>" }.
+         * @description Sets the username for the authenticated wallet. Request body: { "username": "<3-32 chars, lowercase [a-z0-9], single dashes>" }. Requires a wallet signature.
          */
         post: {
             parameters: {
@@ -1074,16 +2556,25 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileEmailResponse"];
+                        "application/json": components["schemas"]["SetProfileUsernameResponse"];
                     };
                 };
-                /** @description Invalid username */
+                /** @description Validation error: the request was malformed or failed schema validation. */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileEmailErrorResponse"];
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Username already taken */
@@ -1092,16 +2583,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileEmailErrorResponse"];
+                        /**
+                         * @example {
+                         *       "error": "username_taken",
+                         *       "message": "That username is already taken.",
+                         *       "action": "Choose a different username and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Internal error */
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
                 500: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileEmailErrorResponse"];
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1112,7 +2621,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/challenge/apply": {
+    "/v1/challenge/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -1121,7 +2630,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Apply to a challenge (CLI) */
+        /**
+         * Apply to a challenge (CLI)
+         * @description Submit a challenge application from the Proxygate CLI. Requires a wallet signature; the wallet must resolve to a profile with a verified contact email. The request body is validated inside the handler and the success body is the raw result of the apply_to_challenge RPC.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -1146,11 +2658,919 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "Request validation failed",
+                         *       "action": "Check request body against API documentation",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description RPC call failed */
+                /** @description Internal error: an unexpected failure occurred (no charge is applied on the money path). */
                 500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "An unexpected error occurred while processing the request.",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/bridge/track": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a Squid bridge widget lifecycle event
+         * @description Report a cross-chain bridge lifecycle event from the Squid widget. The first event for a quote creates a bridge intent; subsequent events for the same (provider, providerQuoteId) update it in place. The request wallet must match the authenticated wallet. Validation runs inside the handler.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Bridge intent created or updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BridgeTrackResponse"];
+                    };
+                };
+                /** @description Invalid bridge track payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "Invalid bridge track payload: validation failed",
+                         *       "action": "Check request body against API documentation",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Request wallet does not match the authenticated wallet */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "bridge_wallet_mismatch",
+                         *       "message": "Wallet in request does not match authenticated wallet",
+                         *       "action": "Use the same wallet that signed the request as the target wallet",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description provider_metadata exceeds the maximum size */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "bridge_metadata_too_large",
+                         *       "message": "provider_metadata exceeds maximum size",
+                         *       "action": "Reduce the size of provider-specific metadata before reporting",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Failed to persist the bridge intent */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "internal_error",
+                         *       "message": "Failed to persist bridge intent",
+                         *       "action": "Retry later. If it persists, contact support with the trace_id.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/bridge/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the authenticated wallet's recent bridge intents (lazy-reconciled)
+         * @description Return the authenticated wallet's recent cross-chain bridge intents. Stale non-terminal intents are reconciled on demand from the upstream provider (no background workers); provider errors are absorbed and never fail the request. The wallet is taken from auth context, never from the query string.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The wallet's bridge intents, with stale ones reconciled from upstream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BridgePendingResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proxy/{service}/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Transparent proxy with server-side key injection
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Service slug to route to (resolved to a seller listing). Example: coingecko. */
+                    service: string;
+                    /** @description Upstream path to forward to, including any sub-path and query string. Example: api/v3/simple/price. */
+                    path: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Upstream response, proxied verbatim. The body shape is defined by the upstream API. */
+                200: {
+                    headers: {
+                        /** @description Base64 platform-signed receipt of the charge (request_id, buyer, seller, amount, timestamp). */
+                        "x-proxygate-receipt": string;
+                        /** @description Shield scan verdict for the request/response when Shield is enabled on the listing. */
+                        "x-proxygate-shield"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Insufficient credit balance to cover the reservation. */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Forbidden: authenticated but not allowed (missing scope, blocked wallet, or wrong auth method). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "forbidden",
+                         *       "message": "The authenticated caller is not permitted to perform this action.",
+                         *       "action": "Use a credential with the required scope, or contact support if your wallet is flagged.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Unprocessable: credential or upstream validation failed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_failed",
+                         *       "message": "The provided credential could not be validated against the upstream service.",
+                         *       "action": "Check the credential and upstream URL, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Rate limit exceeded. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limit_exceeded",
+                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
+                         *       "action": "Back off and retry after the Retry-After interval.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service unavailable: a dependency is degraded or the feature is disabled. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "service_unavailable",
+                         *       "message": "The service is temporarily unavailable.",
+                         *       "action": "Retry after a short delay.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Transparent proxy with server-side key injection
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Service slug to route to (resolved to a seller listing). Example: coingecko. */
+                    service: string;
+                    /** @description Upstream path to forward to, including any sub-path and query string. Example: api/v3/simple/price. */
+                    path: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Upstream response, proxied verbatim. The body shape is defined by the upstream API. */
+                200: {
+                    headers: {
+                        /** @description Base64 platform-signed receipt of the charge (request_id, buyer, seller, amount, timestamp). */
+                        "x-proxygate-receipt": string;
+                        /** @description Shield scan verdict for the request/response when Shield is enabled on the listing. */
+                        "x-proxygate-shield"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Insufficient credit balance to cover the reservation. */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Forbidden: authenticated but not allowed (missing scope, blocked wallet, or wrong auth method). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "forbidden",
+                         *       "message": "The authenticated caller is not permitted to perform this action.",
+                         *       "action": "Use a credential with the required scope, or contact support if your wallet is flagged.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Unprocessable: credential or upstream validation failed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_failed",
+                         *       "message": "The provided credential could not be validated against the upstream service.",
+                         *       "action": "Check the credential and upstream URL, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Rate limit exceeded. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limit_exceeded",
+                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
+                         *       "action": "Back off and retry after the Retry-After interval.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service unavailable: a dependency is degraded or the feature is disabled. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "service_unavailable",
+                         *       "message": "The service is temporarily unavailable.",
+                         *       "action": "Retry after a short delay.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Transparent proxy with server-side key injection
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Service slug to route to (resolved to a seller listing). Example: coingecko. */
+                    service: string;
+                    /** @description Upstream path to forward to, including any sub-path and query string. Example: api/v3/simple/price. */
+                    path: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Upstream response, proxied verbatim. The body shape is defined by the upstream API. */
+                200: {
+                    headers: {
+                        /** @description Base64 platform-signed receipt of the charge (request_id, buyer, seller, amount, timestamp). */
+                        "x-proxygate-receipt": string;
+                        /** @description Shield scan verdict for the request/response when Shield is enabled on the listing. */
+                        "x-proxygate-shield"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Insufficient credit balance to cover the reservation. */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Forbidden: authenticated but not allowed (missing scope, blocked wallet, or wrong auth method). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "forbidden",
+                         *       "message": "The authenticated caller is not permitted to perform this action.",
+                         *       "action": "Use a credential with the required scope, or contact support if your wallet is flagged.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Unprocessable: credential or upstream validation failed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_failed",
+                         *       "message": "The provided credential could not be validated against the upstream service.",
+                         *       "action": "Check the credential and upstream URL, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Rate limit exceeded. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limit_exceeded",
+                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
+                         *       "action": "Back off and retry after the Retry-After interval.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service unavailable: a dependency is degraded or the feature is disabled. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "service_unavailable",
+                         *       "message": "The service is temporarily unavailable.",
+                         *       "action": "Retry after a short delay.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Transparent proxy with server-side key injection
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Service slug to route to (resolved to a seller listing). Example: coingecko. */
+                    service: string;
+                    /** @description Upstream path to forward to, including any sub-path and query string. Example: api/v3/simple/price. */
+                    path: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Upstream response, proxied verbatim. The body shape is defined by the upstream API. */
+                200: {
+                    headers: {
+                        /** @description Base64 platform-signed receipt of the charge (request_id, buyer, seller, amount, timestamp). */
+                        "x-proxygate-receipt": string;
+                        /** @description Shield scan verdict for the request/response when Shield is enabled on the listing. */
+                        "x-proxygate-shield"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Insufficient credit balance to cover the reservation. */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Forbidden: authenticated but not allowed (missing scope, blocked wallet, or wrong auth method). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "forbidden",
+                         *       "message": "The authenticated caller is not permitted to perform this action.",
+                         *       "action": "Use a credential with the required scope, or contact support if your wallet is flagged.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Unprocessable: credential or upstream validation failed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_failed",
+                         *       "message": "The provided credential could not be validated against the upstream service.",
+                         *       "action": "Check the credential and upstream URL, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Rate limit exceeded. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limit_exceeded",
+                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
+                         *       "action": "Back off and retry after the Retry-After interval.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service unavailable: a dependency is degraded or the feature is disabled. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "service_unavailable",
+                         *       "message": "The service is temporarily unavailable.",
+                         *       "action": "Retry after a short delay.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Transparent proxy with server-side key injection
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Service slug to route to (resolved to a seller listing). Example: coingecko. */
+                    service: string;
+                    /** @description Upstream path to forward to, including any sub-path and query string. Example: api/v3/simple/price. */
+                    path: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Upstream response, proxied verbatim. The body shape is defined by the upstream API. */
+                200: {
+                    headers: {
+                        /** @description Base64 platform-signed receipt of the charge (request_id, buyer, seller, amount, timestamp). */
+                        "x-proxygate-receipt": string;
+                        /** @description Shield scan verdict for the request/response when Shield is enabled on the listing. */
+                        "x-proxygate-shield"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Insufficient credit balance to cover the reservation. */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProxyPassthroughBody"];
+                    };
+                };
+                /** @description Forbidden: authenticated but not allowed (missing scope, blocked wallet, or wrong auth method). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "forbidden",
+                         *       "message": "The authenticated caller is not permitted to perform this action.",
+                         *       "action": "Use a credential with the required scope, or contact support if your wallet is flagged.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Unprocessable: credential or upstream validation failed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "validation_failed",
+                         *       "message": "The provided credential could not be validated against the upstream service.",
+                         *       "action": "Check the credential and upstream URL, then retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Rate limit exceeded. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limit_exceeded",
+                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
+                         *       "action": "Back off and retry after the Retry-After interval.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service unavailable: a dependency is degraded or the feature is disabled. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "service_unavailable",
+                         *       "message": "The service is temporarily unavailable.",
+                         *       "action": "Retry after a short delay.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/tunnel/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open a reverse tunnel via WebSocket
+         * @description Upgrades to a WebSocket connection for exposing local services to the marketplace. After the 101 upgrade the connection is a bidirectional JSON message stream (see the tunnel tag description for the protocol). Auth is passed as query params because a browser WebSocket cannot set headers.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Base58-encoded Solana public key. */
+                    "x-wallet": string;
+                    /** @description Server-issued nonce from GET /v1/nonce. */
+                    "x-nonce": string;
+                    /** @description Base64 ed25519 signature of the nonce. */
+                    "x-signature": string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description WebSocket upgrade successful; the connection is now a bidirectional JSON message stream. */
+                101: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Duplicate connection: the wallet already has an active tunnel. */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1158,8 +3578,76 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
+                /** @description Rate limit exceeded. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "rate_limit_exceeded",
+                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
+                         *       "action": "Back off and retry after the Retry-After interval.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gateway health check
+         * @description Returns the gateway health status. Public callers receive status + platform_pubkey only; internal callers (OIDC or internal token) additionally receive per-service details. Rate limited per IP.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description All services healthy. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HealthResponse"];
+                    };
+                };
+                /** @description One or more services degraded. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HealthResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1176,12 +3664,25 @@ export interface components {
             /** @example 30 */
             expires_in: number;
         };
+        /**
+         * @example {
+         *       "error": "invalid_request",
+         *       "message": "The request body failed validation.",
+         *       "action": "Check the request against the schema and retry.",
+         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+         *     }
+         */
         ErrorResponse: {
-            /** @example invalid_wallet */
+            /** @description Stable machine-readable error code (for example invalid_request, wallet_blocked, rate_limit_exceeded). Switch on this, not on message. */
             error: string;
+            /** @description Human-readable explanation of what went wrong. For display and logs; do not parse. */
             message: string;
+            /** @description Suggested next step for the caller to resolve the error, when one applies. */
             action?: string;
+            /** @description URL to the documentation for this error code. */
             docs?: string;
+            /** @description Correlation id for this request. Quote it when contacting support so the exact call can be traced. */
             trace_id?: string;
         };
         PricingResponse: {
@@ -1280,11 +3781,6 @@ export interface components {
             parsed_endpoints: unknown[] | null;
             /** @example 2026-02-18T00:00:00Z */
             updated_at: string;
-        };
-        DocsErrorResponse: {
-            /** @example docs_not_found */
-            error: string;
-            message: string;
         };
         DepositConfirmResponse: {
             /** @example 5000000 */
@@ -1507,11 +4003,6 @@ export interface components {
             is_partner: boolean;
             free_listing_approved: boolean;
         };
-        CatalogValidationError: {
-            /** @example invalid_slug */
-            error: string;
-            message: string;
-        };
         CatalogErrorResponse: {
             data: components["schemas"]["CatalogListing"][];
             cursor: string | null;
@@ -1547,6 +4038,39 @@ export interface components {
             count: number;
             error: string;
         };
+        /**
+         * @example {
+         *       "slug": "acme-data",
+         *       "account_type": "organization",
+         *       "display_name": "Acme Data",
+         *       "organization": "Acme Inc.",
+         *       "country": "US",
+         *       "avatar_url": null,
+         *       "banner_url": null,
+         *       "banner_position": null,
+         *       "banner_scale": null,
+         *       "bio_md": "Realtime market data feeds.",
+         *       "website_url": "https://acme.example.com",
+         *       "wallet": "ABcd...QP56",
+         *       "verification_status": "verified",
+         *       "is_verified": true,
+         *       "member_since": "2026-02-18T00:00:00Z",
+         *       "total_active_listings": 1,
+         *       "canonical_handle": "acme-data",
+         *       "canonical_path": "/seller/acme-data",
+         *       "listings": [
+         *         {
+         *           "listing_id": "a1b2c3d4-0000-0000-0000-000000000000",
+         *           "slug": "weather-api",
+         *           "service_name": "Weather API",
+         *           "description": "Global weather data.",
+         *           "listing_type": "proxy",
+         *           "price_per_request_usdc": 0.001,
+         *           "provider_logo_url": null
+         *         }
+         *       ]
+         *     }
+         */
         ProfileByHandleResponse: {
             slug: string | null;
             account_type: string;
@@ -1566,27 +4090,52 @@ export interface components {
             total_active_listings: number;
             canonical_handle: string;
             canonical_path: string;
-            listings: components["schemas"]["ProfileListing"][];
+            listings: {
+                listing_id: string;
+                slug: string | null;
+                service_name: string;
+                description: string | null;
+                listing_type: string;
+                price_per_request_usdc: number | null;
+                provider_logo_url: string | null;
+            }[];
         };
-        ProfileListing: {
-            listing_id: string;
-            slug: string | null;
-            service_name: string;
-            description: string | null;
-            listing_type: string;
-            price_per_request_usdc: number | null;
-            provider_logo_url: string | null;
-        };
-        ProfileByHandleError: {
-            error: string;
-            message: string;
-        };
+        /**
+         * @example {
+         *       "wallet": "ABcd...QP56",
+         *       "services_listed": 2,
+         *       "services": [
+         *         "weather-api",
+         *         "maps-api"
+         *       ],
+         *       "uptime_percent": 99.95,
+         *       "latency": {
+         *         "p50": 120,
+         *         "p95": 340,
+         *         "p99": 780
+         *       },
+         *       "trust_score": 0.92,
+         *       "badges": [
+         *         "verified_seller"
+         *       ],
+         *       "total_requests_served": 12500,
+         *       "member_since": "2026-02-18T00:00:00Z",
+         *       "avg_rating": 0.97,
+         *       "total_ratings": 84,
+         *       "verification_status": "verified",
+         *       "is_verified": true
+         *     }
+         */
         SellerProfileResponse: {
             wallet: string;
             services_listed: number;
             services: string[];
             uptime_percent: number | null;
-            latency: components["schemas"]["ProfileLatency"];
+            latency: {
+                p50: number;
+                p95: number;
+                p99: number;
+            } | null;
             trust_score: number;
             badges: string[];
             total_requests_served: number;
@@ -1595,15 +4144,6 @@ export interface components {
             total_ratings: number;
             verification_status: string;
             is_verified: boolean;
-        };
-        ProfileLatency: {
-            p50: number;
-            p95: number;
-            p99: number;
-        } | null;
-        SellerProfileError: {
-            error: string;
-            message: string;
         };
         SettlementHistoryResponse: {
             /** @enum {string} */
@@ -1656,35 +4196,471 @@ export interface components {
             tx_signature: string | null;
             status: string;
         };
-        SettlementHistoryError: {
-            error: string;
+        /**
+         * @example {
+         *       "listings": [
+         *         {
+         *           "id": "a1b2c3d4-0000-0000-0000-000000000000",
+         *           "seller_id": "seller-uuid",
+         *           "seller_wallet": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+         *           "service_catalog_id": "svc-uuid",
+         *           "key_masked": "sk-****5678",
+         *           "total_rpm": 100,
+         *           "reserved_rpm": 20,
+         *           "available_resale_rpm": 80,
+         *           "allowed_paths": [],
+         *           "price_per_request": 10000,
+         *           "is_active": true,
+         *           "is_validated": true,
+         *           "created_at": "2026-06-01T12:00:00.000Z",
+         *           "updated_at": "2026-06-01T12:00:00.000Z",
+         *           "pricing_unit": "per_request",
+         *           "price_per_input_token": null,
+         *           "price_per_output_token": null,
+         *           "description": "Weather data API",
+         *           "auth_pattern": "bearer",
+         *           "endpoints": [],
+         *           "shield_enabled": false,
+         *           "endpoint_prices": [],
+         *           "listing_type": "proxy",
+         *           "type_metadata": null,
+         *           "oauth2_flow_type": null,
+         *           "oauth2_token_url": null,
+         *           "oauth2_scopes": null,
+         *           "oauth2_audience": null,
+         *           "service_slug": "weather-api",
+         *           "service_name": "Weather API",
+         *           "service_base_url": "https://api.weather.example.com"
+         *         }
+         *       ]
+         *     }
+         */
+        ListListingsResponse: {
+            listings: {
+                id: string;
+                seller_id: string | null;
+                seller_wallet: string;
+                service_catalog_id: string | null;
+                key_masked: string | null;
+                total_rpm: number;
+                reserved_rpm: number;
+                available_resale_rpm: number | null;
+                allowed_paths: string[] | null;
+                price_per_request: number | null;
+                is_active: boolean;
+                is_validated: boolean;
+                created_at: string;
+                updated_at: string | null;
+                pricing_unit: string;
+                price_per_input_token: number | null;
+                price_per_output_token: number | null;
+                description: string | null;
+                auth_pattern: string | null;
+                endpoints: {
+                    /** @enum {string} */
+                    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+                    path: string;
+                    description?: string;
+                    request_schema?: {
+                        [key: string]: unknown;
+                    };
+                }[] | null;
+                shield_enabled: boolean | null;
+                endpoint_prices: {
+                    path: string;
+                    /** @enum {string} */
+                    pricing_unit: "per_request" | "per_token";
+                    price_per_request?: number;
+                    price_per_input_token?: number;
+                    price_per_output_token?: number;
+                    daily_cap_per_wallet?: number | null;
+                    daily_cap_global?: number | null;
+                }[] | null;
+                listing_type: string;
+                type_metadata: {
+                    [key: string]: unknown;
+                } | null;
+                oauth2_flow_type: string | null;
+                oauth2_token_url: string | null;
+                oauth2_scopes: string | null;
+                oauth2_audience: string | null;
+                service_slug: string | null;
+                service_name: string | null;
+                service_base_url: string | null;
+            }[];
+        };
+        /**
+         * @example {
+         *       "id": "a1b2c3d4-0000-0000-0000-000000000000",
+         *       "seller_id": "seller-uuid",
+         *       "seller_wallet": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+         *       "service_catalog_id": "svc-uuid",
+         *       "key_masked": "sk-****5678",
+         *       "total_rpm": 100,
+         *       "reserved_rpm": 20,
+         *       "available_resale_rpm": 80,
+         *       "allowed_paths": [],
+         *       "price_per_request": 10000,
+         *       "is_active": true,
+         *       "is_validated": true,
+         *       "created_at": "2026-06-01T12:00:00.000Z",
+         *       "updated_at": "2026-06-01T12:00:00.000Z",
+         *       "pricing_unit": "per_request",
+         *       "price_per_input_token": null,
+         *       "price_per_output_token": null,
+         *       "description": "Weather data API",
+         *       "auth_pattern": "bearer",
+         *       "endpoints": [],
+         *       "shield_enabled": false,
+         *       "endpoint_prices": [],
+         *       "listing_type": "proxy",
+         *       "type_metadata": null,
+         *       "oauth2_flow_type": null,
+         *       "oauth2_token_url": null,
+         *       "oauth2_scopes": null,
+         *       "oauth2_audience": null,
+         *       "service_catalog": {
+         *         "slug": "weather-api",
+         *         "name": "Weather API",
+         *         "base_url": "https://api.weather.example.com",
+         *         "auth_pattern": "bearer"
+         *       },
+         *       "category_slugs": [
+         *         "weather",
+         *         "data"
+         *       ]
+         *     }
+         */
+        ListingDetailResponse: {
+            id: string;
+            seller_id: string | null;
+            seller_wallet: string;
+            service_catalog_id: string | null;
+            key_masked: string | null;
+            total_rpm: number;
+            reserved_rpm: number;
+            available_resale_rpm: number | null;
+            allowed_paths: string[] | null;
+            price_per_request: number | null;
+            is_active: boolean;
+            is_validated: boolean;
+            created_at: string;
+            updated_at: string | null;
+            pricing_unit: string;
+            price_per_input_token: number | null;
+            price_per_output_token: number | null;
+            description: string | null;
+            auth_pattern: string | null;
+            endpoints: {
+                /** @enum {string} */
+                method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+                path: string;
+                description?: string;
+                request_schema?: {
+                    [key: string]: unknown;
+                };
+            }[] | null;
+            shield_enabled: boolean | null;
+            endpoint_prices: {
+                path: string;
+                /** @enum {string} */
+                pricing_unit: "per_request" | "per_token";
+                price_per_request?: number;
+                price_per_input_token?: number;
+                price_per_output_token?: number;
+                daily_cap_per_wallet?: number | null;
+                daily_cap_global?: number | null;
+            }[] | null;
+            listing_type: string;
+            type_metadata: {
+                [key: string]: unknown;
+            } | null;
+            oauth2_flow_type: string | null;
+            oauth2_token_url: string | null;
+            oauth2_scopes: string | null;
+            oauth2_audience: string | null;
+            service_catalog: {
+                slug: string | null;
+                name: string | null;
+                base_url: string | null;
+                auth_pattern: string | null;
+            } | null;
+            category_slugs: string[];
+        };
+        /**
+         * @example {
+         *       "id": "a1b2c3d4-0000-0000-0000-000000000000",
+         *       "service": "weather-api",
+         *       "is_active": true,
+         *       "key_masked": "sk-****5678",
+         *       "sync_status": "synced",
+         *       "test_results": [
+         *         {
+         *           "success": true,
+         *           "status": 200,
+         *           "latency_ms": 142,
+         *           "endpoint": {
+         *             "method": "GET",
+         *             "path": "/"
+         *           },
+         *           "validation_type": "auth_only"
+         *         }
+         *       ],
+         *       "test_passed": true,
+         *       "message": "All 1 endpoint(s) passed. Listing activated."
+         *     }
+         */
+        CreateListingResponse: {
+            id: string;
+            service: string;
+            is_active: boolean;
+            key_masked: string;
+            /** @enum {string} */
+            sync_status: "synced" | "pending";
+            test_results: {
+                success: boolean;
+                status?: number;
+                status_text?: string;
+                latency_ms: number;
+                headers?: {
+                    [key: string]: string;
+                };
+                body?: string;
+                truncated?: boolean;
+                error?: string;
+                hint?: string | null;
+                endpoint: {
+                    method: string;
+                    path: string;
+                };
+                /** @enum {string} */
+                validation_type: "full" | "auth_only";
+            }[];
+            test_passed: boolean;
+            message: string;
+            activation_hint?: string;
+        };
+        /**
+         * @example {
+         *       "updated": true,
+         *       "id": "a1b2c3d4-0000-0000-0000-000000000000"
+         *     }
+         */
+        UpdateListingResponse: {
+            /** @enum {boolean} */
+            updated: true;
+            id: string;
+        };
+        /**
+         * @example {
+         *       "paused": true
+         *     }
+         */
+        PauseListingResponse: {
+            /** @enum {boolean} */
+            paused: true;
+        };
+        /**
+         * @example {
+         *       "unpaused": true
+         *     }
+         */
+        UnpauseListingResponse: {
+            /** @enum {boolean} */
+            unpaused: true;
+        };
+        /**
+         * @example {
+         *       "deleted": true
+         *     }
+         */
+        DeleteListingResponse: {
+            /** @enum {boolean} */
+            deleted: true;
+        };
+        /**
+         * @example {
+         *       "rotated": true,
+         *       "key_masked": "sk-****9012"
+         *     }
+         */
+        RotateKeyResponse: {
+            /** @enum {boolean} */
+            rotated: true;
+            key_masked: string;
+        };
+        /**
+         * @example {
+         *       "uploaded": true,
+         *       "listing_id": "a1b2c3d4-0000-0000-0000-000000000000",
+         *       "doc_type": "openapi",
+         *       "endpoints_parsed": 4,
+         *       "test_results": [
+         *         {
+         *           "success": true,
+         *           "status": 200,
+         *           "latency_ms": 142,
+         *           "endpoint": {
+         *             "method": "GET",
+         *             "path": "/"
+         *           },
+         *           "validation_type": "auth_only"
+         *         }
+         *       ],
+         *       "test_passed": true,
+         *       "message": "All 1 endpoint(s) passed. Listing activated."
+         *     }
+         */
+        UploadDocsResponse: {
+            /** @enum {boolean} */
+            uploaded: true;
+            listing_id: string;
+            /** @enum {string} */
+            doc_type: "openapi" | "markdown";
+            endpoints_parsed: number;
+            test_results?: {
+                success: boolean;
+                status?: number;
+                status_text?: string;
+                latency_ms: number;
+                headers?: {
+                    [key: string]: string;
+                };
+                body?: string;
+                truncated?: boolean;
+                error?: string;
+                hint?: string | null;
+                endpoint: {
+                    method: string;
+                    path: string;
+                };
+                /** @enum {string} */
+                validation_type: "full" | "auth_only";
+            }[];
+            test_passed?: boolean;
+            message?: string;
+        };
+        /**
+         * @example {
+         *       "id": "a1b2c3d4-0000-0000-0000-000000000000",
+         *       "test_results": [
+         *         {
+         *           "success": true,
+         *           "status": 200,
+         *           "latency_ms": 142,
+         *           "endpoint": {
+         *             "method": "GET",
+         *             "path": "/"
+         *           },
+         *           "validation_type": "auth_only"
+         *         }
+         *       ],
+         *       "test_passed": true,
+         *       "activated": true,
+         *       "message": "All 1 endpoint(s) passed. Listing activated."
+         *     }
+         */
+        TestListingResponse: {
+            id: string;
+            test_results: {
+                success: boolean;
+                status?: number;
+                status_text?: string;
+                latency_ms: number;
+                headers?: {
+                    [key: string]: string;
+                };
+                body?: string;
+                truncated?: boolean;
+                error?: string;
+                hint?: string | null;
+                endpoint: {
+                    method: string;
+                    path: string;
+                };
+                /** @enum {string} */
+                validation_type: "full" | "auth_only";
+            }[];
+            test_passed: boolean;
+            activated: boolean;
             message: string;
         };
+        /**
+         * @example {
+         *       "wallet": "ABcd1234efgh5678ijk89m12mnQP3456",
+         *       "display_name": "Alice",
+         *       "created_at": "2026-02-18T00:00:00Z",
+         *       "auth_method": "wallet-sig"
+         *     }
+         */
         MeResponse: {
-            /** @example ABcd1234efgh5678ijk89m12mnQP3456 */
             wallet: string;
-            /** @example Alice */
             display_name: string | null;
-            /** @example 2026-02-18T00:00:00Z */
             created_at: string | null;
-            /**
-             * @example wallet-sig
-             * @enum {string|null}
-             */
+            /** @enum {string|null} */
             auth_method: "bearer" | "wallet-sig" | null;
         };
         ProfileEmailResponse: {
             [key: string]: unknown;
         };
-        ProfileEmailErrorResponse: {
-            /** @example invalid_request */
-            error: string;
-            message: string;
-            action?: string;
-            docs?: string;
-            trace_id?: string;
+        SetProfileUsernameResponse: {
+            /** @enum {boolean} */
+            success: true;
         };
         ChallengeApplyResult: unknown;
+        /**
+         * @example {
+         *       "intent_id": "intent_01H...",
+         *       "status": "executing"
+         *     }
+         */
+        BridgeTrackResponse: {
+            intent_id: string;
+            /** @enum {string} */
+            status: "quoted" | "executing" | "bridging" | "bridged" | "depositing" | "complete" | "failed" | "expired";
+        };
+        BridgePendingResponse: {
+            intents: components["schemas"]["BridgePendingIntent"][];
+        };
+        BridgePendingIntent: {
+            id: string;
+            provider: string;
+            provider_quote_id: string | null;
+            provider_tx_id: string | null;
+            source_chain_id: string;
+            source_token_address: string;
+            source_token_symbol: string | null;
+            source_amount: string;
+            destination_chain_id: string;
+            destination_token_address: string | null;
+            expected_amount_out: number | null;
+            actual_amount_received: number | null;
+            /** @description classification:financial */
+            solana_deposit_tx_signature: string | null;
+            /** @enum {string} */
+            status: "quoted" | "executing" | "bridging" | "bridged" | "depositing" | "complete" | "failed" | "expired";
+            error_message: string | null;
+            created_at: number;
+            updated_at: number;
+            completed_at: number | null;
+        };
+        /** @description Passthrough body. The shape is defined by the upstream API, not by Proxygate. */
+        ProxyPassthroughBody: unknown;
+        /**
+         * @example {
+         *       "status": "healthy",
+         *       "platform_pubkey": "EwBmhyx991AHyfig5wdsgmGAwaLyszLCbj2pEuzgx5jU"
+         *     }
+         */
+        HealthResponse: {
+            /**
+             * @description Overall gateway health. degraded means one or more dependencies are unhealthy.
+             * @enum {string}
+             */
+            status: "healthy" | "degraded";
+            /** @description The platform treasury public key (base58) clients use to verify signed receipts. */
+            platform_pubkey: string;
+        };
     };
     responses: never;
     parameters: never;
