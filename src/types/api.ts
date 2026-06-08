@@ -357,8 +357,9 @@ export interface ApiListingDetail {
 /** GET /v1/apis/:listingId/docs response. */
 export interface ListingDocsResponse {
   listing_id: string;
-  doc_type: 'openapi' | 'markdown';
+  doc_type: 'openapi' | 'markdown' | 'graphql';
   content: string;
+  /** OpenAPI: parsed endpoints. GraphQL: parsed operations. Markdown: null. */
   parsed_endpoints: Record<string, unknown>[] | null;
   updated_at: string;
 }

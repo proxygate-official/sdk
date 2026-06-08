@@ -290,7 +290,7 @@ export interface paths {
         };
         /**
          * Get public documentation for a listing
-         * @description Returns the seller-provided documentation for a single listing, identified by its UUID. Documentation is either an OpenAPI specification or Markdown (see `doc_type`); when the document is an OpenAPI spec, `parsed_endpoints` carries the extracted endpoint list. This endpoint is public and IP rate-limited; no wallet authentication is required. A malformed listing ID returns 400, a listing with no documentation returns 404, and a backend failure returns 500.
+         * @description Returns the seller-provided documentation for a single listing, identified by its UUID. Documentation is an OpenAPI specification, a GraphQL schema, or Markdown (see `doc_type`); when the document is an OpenAPI spec `parsed_endpoints` carries the extracted endpoint list, and for a GraphQL schema it carries the parsed operations. This endpoint is public and IP rate-limited; no wallet authentication is required. A malformed listing ID returns 400, a listing with no documentation returns 404, and a backend failure returns 500.
          */
         get: {
             parameters: {
@@ -3776,7 +3776,7 @@ export interface components {
              * @example openapi
              * @enum {string}
              */
-            doc_type: "openapi" | "markdown";
+            doc_type: "openapi" | "markdown" | "graphql";
             content: string;
             parsed_endpoints: unknown[] | null;
             /** @example 2026-02-18T00:00:00Z */
@@ -4516,7 +4516,7 @@ export interface components {
             uploaded: true;
             listing_id: string;
             /** @enum {string} */
-            doc_type: "openapi" | "markdown";
+            doc_type: "openapi" | "markdown" | "graphql";
             endpoints_parsed: number;
             test_results?: {
                 success: boolean;

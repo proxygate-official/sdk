@@ -259,7 +259,7 @@ export interface TestListingResponse {
 
 /** Options for uploading listing documentation. */
 export interface UploadDocsOptions {
-  doc_type: 'openapi' | 'markdown';
+  doc_type: 'openapi' | 'markdown' | 'graphql';
   content: string;
 }
 
@@ -267,8 +267,8 @@ export interface UploadDocsOptions {
 export interface UploadDocsResponse {
   uploaded: true;
   listing_id: string;
-  doc_type: 'openapi' | 'markdown';
-  /** Number of endpoints extracted from OpenAPI spec (0 for markdown). */
+  doc_type: 'openapi' | 'markdown' | 'graphql';
+  /** Endpoints extracted from an OpenAPI spec, or operations from a GraphQL schema (0 for markdown). */
   endpoints_parsed: number;
   /** Endpoint test results — present when new endpoints were synced to the listing. */
   test_results?: Array<{
