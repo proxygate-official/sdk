@@ -1,5 +1,5 @@
 import { base64ToBytes, requireSolanaWeb3, sleep } from './instructions.js';
-import { DEFAULT_POLL_INTERVAL_MS, DEFAULT_MAX_WAIT_MS } from './constants.js';
+import { DEFAULT_POLL_INTERVAL_MS, DEFAULT_MAX_WAIT_MS, DEFAULT_RPC_URL } from './constants.js';
 import type {
   VaultDelegate,
   VaultBalanceResponse,
@@ -98,7 +98,7 @@ export async function executeWithdraw(
   const solanaWeb3 = await requireSolanaWeb3();
   const { Connection, Keypair, Transaction } = solanaWeb3;
 
-  const rpcUrl = opts?.rpcUrl ?? 'https://api.devnet.solana.com';
+  const rpcUrl = opts?.rpcUrl ?? DEFAULT_RPC_URL;
   const connection = new Connection(rpcUrl, 'confirmed');
   const buyerKeypair = Keypair.fromSecretKey(delegate.secretKey!);
 

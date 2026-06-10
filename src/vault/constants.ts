@@ -1,4 +1,4 @@
-/** Well-known vault program and token addresses (devnet). */
+/** Well-known vault program and token addresses (mainnet). */
 export const VAULT_CONSTANTS = {
   PROGRAM_ID: '7fe3uMMqrJjqmTy5rB4CVn1pvNxH6z5Snh8ULa3cQXmo',
   USDC_MINT: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
@@ -17,8 +17,8 @@ export const DISCRIMINATORS = {
   withdraw: Uint8Array.from([183, 18, 70, 156, 148, 109, 161, 34]),
 } as const;
 
-/** Default Solana devnet RPC. */
-export const DEFAULT_RPC_URL = 'https://api.devnet.solana.com';
+/** Default Solana mainnet-beta RPC. Pass a custom rpcUrl for devnet/testnet. */
+export const DEFAULT_RPC_URL = 'https://api.mainnet-beta.solana.com';
 
 /** Default cooldown polling config. */
 export const DEFAULT_POLL_INTERVAL_MS = 5000;

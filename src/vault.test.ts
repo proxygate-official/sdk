@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import nacl from 'tweetnacl';
 import { VaultClient, VAULT_CONSTANTS } from './vault';
+import { DEFAULT_RPC_URL } from './vault/constants';
 import { encodeBase58 } from './base58';
 import type {
   VaultDelegate,
@@ -534,10 +535,14 @@ describe('VAULT_CONSTANTS', () => {
     );
   });
 
-  it('has correct USDC mint (devnet)', () => {
+  it('has correct USDC mint (mainnet)', () => {
     expect(VAULT_CONSTANTS.USDC_MINT).toBe(
       'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
     );
+  });
+
+  it('defaults the RPC URL to mainnet-beta', () => {
+    expect(DEFAULT_RPC_URL).toBe('https://api.mainnet-beta.solana.com');
   });
 
   it('has standard Solana program IDs', () => {

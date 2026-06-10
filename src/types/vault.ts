@@ -90,7 +90,7 @@ export interface VaultReceipt {
 export interface VaultDepositOptions {
   /** Amount in USDC base units (e.g., 1000000 = 1 USDC with 6 decimals). */
   amount: number;
-  /** Optional: custom Solana RPC URL (overrides default devnet). */
+  /** Optional: custom Solana RPC URL (overrides the default mainnet-beta). */
   rpcUrl?: string;
 }
 

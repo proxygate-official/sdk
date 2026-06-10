@@ -11,8 +11,15 @@ export class ProxygateError extends Error {
   readonly action?: string;
   readonly docs?: string;
   readonly traceId?: string;
+  /**
+   * The parsed JSON response body, when the gateway returned one. Lets callers
+   * inspect structured payloads that are not part of the GatewayError envelope
+   * (e.g. the x402 402 challenge with its `accepts` array). Undefined when the
+   * body was empty or not valid JSON. (Additive, SAFE-06.)
+   */
+  readonly raw?: unknown;
 
-  constructor(gatewayError: GatewayError, statusCode: number) {
+  constructor(gatewayError: GatewayError, statusCode: number, raw?: unknown) {
     super(gatewayError.message);
     this.name = 'ProxygateError';
     this.code = gatewayError.error;
@@ -20,6 +27,7 @@ export class ProxygateError extends Error {
     this.action = gatewayError.action;
     this.docs = gatewayError.docs;
     this.traceId = gatewayError.trace_id;
+    this.raw = raw;
   }
 }
 
@@ -89,13 +97,7 @@ export async function authenticatedRequest<T>(
     body: opts?.body !== undefined ? JSON.stringify(opts.body) : undefined,
     signal: opts?.signal,
   });
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    let gatewayError: GatewayError;
-    try { gatewayError = JSON.parse(body) as GatewayError; }
-    catch { gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` }; }
-    throw new ProxygateError(gatewayError, response.status);
-  }
+  if (!response.ok) throw await parseErrorResponse(response);
   return (await response.json()) as T;
 }
 
@@ -112,13 +114,7 @@ export async function bearerRequest<T>(
     body: opts?.body !== undefined ? JSON.stringify(opts.body) : undefined,
     signal: opts?.signal,
   });
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    let gatewayError: GatewayError;
-    try { gatewayError = JSON.parse(body) as GatewayError; }
-    catch { gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` }; }
-    throw new ProxygateError(gatewayError, response.status);
-  }
+  if (!response.ok) throw await parseErrorResponse(response);
   return (await response.json()) as T;
 }
 
@@ -128,12 +124,24 @@ export async function publicRequest<T>(
   method: string,
 ): Promise<T> {
   const response = await fetch(url, { method, headers: { 'content-type': 'application/json' } });
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    let gatewayError: GatewayError;
-    try { gatewayError = JSON.parse(body) as GatewayError; }
-    catch { gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` }; }
-    throw new ProxygateError(gatewayError, response.status);
-  }
+  if (!response.ok) throw await parseErrorResponse(response);
   return (await response.json()) as T;
+}
+
+/**
+ * Build a ProxygateError from a non-OK response, parsing the body once and
+ * carrying the parsed JSON on `.raw` (undefined for empty/non-JSON bodies).
+ */
+async function parseErrorResponse(response: Response): Promise<ProxygateError> {
+  const body = await response.text().catch(() => '');
+  let raw: unknown;
+  let gatewayError: GatewayError;
+  try {
+    raw = JSON.parse(body);
+    gatewayError = raw as GatewayError;
+  } catch {
+    raw = undefined;
+    gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` };
+  }
+  return new ProxygateError(gatewayError, response.status, raw);
 }

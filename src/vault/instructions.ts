@@ -1,4 +1,4 @@
-import { VAULT_CONSTANTS, DISCRIMINATORS } from './constants.js';
+import { VAULT_CONSTANTS, DISCRIMINATORS, DEFAULT_RPC_URL } from './constants.js';
 import type { VaultDepositOptions } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ export async function buildAndSendDeposit(
     sendAndConfirmTransaction,
   } = solanaWeb3;
 
-  const rpcUrl = opts.rpcUrl ?? 'https://api.devnet.solana.com';
+  const rpcUrl = opts.rpcUrl ?? DEFAULT_RPC_URL;
   const connection = new Connection(rpcUrl, 'confirmed');
 
   // Derive keys

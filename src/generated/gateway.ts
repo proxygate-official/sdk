@@ -514,6 +514,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/x402/topup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Request an x402 top-up challenge */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Top-up amount in micro-USDC (1 USDC = 1_000_000). The agent chooses how much. */
+                    amount: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Invalid amount, or (gasless) insufficient USDC for amount + fee. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description x402 payment challenge. Pay USDC to payTo, then POST /v1/x402/topup/confirm. */
+                402: {
+                    headers: {
+                        /** @description Base64-JSON x402 challenge (x402 v2). */
+                        "PAYMENT-REQUIRED": string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            x402Version: number;
+                            accepts: {
+                                /** @enum {string} */
+                                scheme: "exact";
+                                network: string;
+                                asset: string;
+                                /** @description classification:financial */
+                                payTo: string;
+                                maxAmountRequired: string;
+                                resource: string;
+                                description?: string;
+                                mimeType?: string;
+                                maxTimeoutSeconds?: number;
+                                extra?: {
+                                    /** @description classification:financial */
+                                    feePayer: string;
+                                    memo?: string;
+                                    /** @description classification:financial */
+                                    feeMicroUsdc?: string;
+                                };
+                                /** @description classification:financial */
+                                depositTransaction?: string;
+                            }[];
+                            error?: string;
+                        };
+                    };
+                };
+                /** @description Wallet authentication required. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Gasless challenge cooldown: one partial-signed TX per wallet per window. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Deposit TX could not be built (or platform fee-payer float exhausted). */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/balance": {
         parameters: {
             query?: never;
