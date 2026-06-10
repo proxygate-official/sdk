@@ -343,6 +343,28 @@ export interface ApiListingDetail {
   total_ratings?: number;
 
   // ---------------------------------------------------------------------------
+  // Buyer-facing pricing + branding enrichment surfaced from the api_catalog
+  // view (mirrors @proxygate/api-types CatalogListing). All optional — older
+  // gateway versions omit them. Nullability follows the api-types schema.
+  // ---------------------------------------------------------------------------
+  /** Buyer-facing per-request price in USDC (base price + platform fee). NULL for token-priced listings. */
+  buyer_price_per_request_usdc?: number | null;
+  /** Buyer-facing per-input-token price in USDC. NULL for request-priced listings. */
+  buyer_price_per_input_token_usdc?: number | null;
+  /** Buyer-facing per-output-token price in USDC. NULL for request-priced listings. */
+  buyer_price_per_output_token_usdc?: number | null;
+  /** Platform fee percentage applied on top of the seller's base price. */
+  platform_fee_pct?: number;
+  /** Seller's organization name. NULL for personal accounts or when unset. */
+  seller_organization?: string | null;
+  /** Seller's logo URL (avatar_url). NULL when no logo uploaded. */
+  seller_avatar_url?: string | null;
+  /** Per-listing logo override (e.g. the upstream provider's logo for curated listings). NULL when unset. */
+  provider_logo_url?: string | null;
+  /** Verified-partner flag — TRUE only when approved through the partnership review flow. Distinct from is_verified (KYC). */
+  is_partner?: boolean;
+
+  // ---------------------------------------------------------------------------
   // Phase 51.5: procured free listings.
   // ---------------------------------------------------------------------------
   /**
