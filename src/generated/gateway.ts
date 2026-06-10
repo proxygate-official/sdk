@@ -4599,6 +4599,11 @@ export interface components {
             created_at: string | null;
             /** @enum {string|null} */
             auth_method: "bearer" | "wallet-sig" | null;
+            /**
+             * @description classification:public
+             * @enum {string}
+             */
+            seller_status: "none" | "applicant" | "accepted";
         };
         ProfileEmailResponse: {
             [key: string]: unknown;
