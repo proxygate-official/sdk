@@ -78,15 +78,31 @@ const client = new ProxygateClient({
 
 ## Authentication
 
-Proxygate supports three auth methods:
+Proxygate supports three auth modes:
 
-| Method | Header | Use case |
-|--------|--------|----------|
-| **API key** | `Authorization: Bearer pg_live_...` | Agents, scripts |
-| **Delegation token** | `Authorization: Bearer pg_del_...` | WalletConnect sessions |
-| **Wallet signature** | `x-wallet` + `x-nonce` + `x-signature` | Full on-chain access |
+| Mode | Constructor option | Header | Use case |
+|--------|--------|--------|----------|
+| **API key** | `{ apiKey: 'pg_live_...' }` | `Authorization: Bearer pg_live_...` | Spending agents, scripts |
+| **Delegation token** | `{ delegationToken: 'pg_del_...' }` | `Authorization: Bearer pg_del_...` | Scoped, time-limited access (WalletConnect sessions, granting a third party) |
+| **Wallet keypair** | `{ walletAddress, secretKey }` | `x-wallet` + `x-nonce` + `x-signature` | On-chain signing (deposit, withdraw), self-custody |
 
 The `ProxygateClient` handles auth automatically. With a keypair, it uses a built-in nonce pool for low-latency concurrent requests.
+
+### Which mode should an agent use?
+
+If your agent only **spends** from a pre-funded balance, use an **API key**. It is the least-privilege choice: a scoped, revocable token tied to your wallet, not the wallet private key. It is also simpler and faster, since there is no per-request nonce signing.
+
+```ts
+const client = await ProxygateClient.create({ apiKey: 'pg_live_...' });
+
+const res = await client.proxy('weather-api', '/v1/forecast', { latitude: 52.37, longitude: 4.90 });
+```
+
+Use the **wallet keypair** mode only when the agent must sign on-chain transactions itself (autonomous deposit or withdraw) or be self-custodial. Humans manage funds in the browser with a connected wallet (Phantom, Solflare, WalletConnect), so there is no private key to hand to an agent.
+
+To grant a **third party** limited or expiring access, a **delegation token** (`pg_del_...`) is the better fit: it carries scoped claims and expires on its own.
+
+> **Dual mode:** pass `{ apiKey, walletAddress, secretKey }` together to use the Bearer key for proxy and reads while keeping the keypair for vault operations.
 
 ### Low-level: `signRequest()`
 
