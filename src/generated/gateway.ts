@@ -367,6 +367,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/wallet/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the wallet spend limits
+         * @description Returns the daily and per-transaction spend limits for the wallet behind the bearer credential. A null value means that limit is unset, so spend on the wallet is uncapped for that dimension until a value is set. The wallet ceiling caps all spend on the wallet (api keys, OAuth connected apps, and Desk). Values are micro-USDC (1 USDC = 1,000,000). Requires an API key with the wallet:limits scope.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The wallet spend limits. A null field means that limit is unset (uncapped). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WalletLimits"];
+                    };
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Forbidden: authenticated but not allowed (missing scope, blocked wallet, or wrong auth method). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "forbidden",
+                         *       "message": "The authenticated caller is not permitted to perform this action.",
+                         *       "action": "Use a credential with the required scope, or contact support if your wallet is flagged.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Set the wallet spend limits
+         * @description Sets the daily and per-transaction spend limits for the wallet behind the bearer credential. Send null for a field to clear that limit (uncapping that dimension). The wallet ceiling caps all spend on the wallet (api keys, OAuth connected apps, and Desk); a per-api-key limit may not exceed it. Values are micro-USDC (1 USDC = 1,000,000). Requires an API key with the wallet:limits scope. The same limits can be managed in the web app under Wallets > Limits.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description The new limits. Null clears a limit (uncaps that dimension). */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WalletLimits"];
+                };
+            };
+            responses: {
+                /** @description The updated wallet spend limits. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WalletLimits"];
+                    };
+                };
+                /** @description Validation error: the request was malformed or failed schema validation. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "invalid_request",
+                         *       "message": "The request body failed validation.",
+                         *       "action": "Check the request against the schema and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Authentication required or the provided credentials were invalid. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "unauthorized",
+                         *       "message": "Authentication is required for this endpoint.",
+                         *       "action": "Attach a valid API key, delegation token, or wallet signature and retry.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Forbidden: authenticated but not allowed (missing scope, blocked wallet, or wrong auth method). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": "forbidden",
+                         *       "message": "The authenticated caller is not permitted to perform this action.",
+                         *       "action": "Use a credential with the required scope, or contact support if your wallet is flagged.",
+                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
+                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/deposit/confirm": {
         parameters: {
             query?: never;
@@ -2957,7 +3114,7 @@ export interface paths {
         };
         /**
          * Transparent proxy with server-side key injection
-         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance. Spend limits apply: a wallet-level daily and per-transaction ceiling caps all spend on the wallet (api keys, OAuth connected apps, and Desk), and api-key callers also pass a tighter per-key window. Exceeding either window returns 429 and refunds the hold (no charge). Set wallet limits under Wallets > Limits, and per-key limits in the API Keys section of the web app.
          */
         get: {
             parameters: {
@@ -3049,21 +3206,12 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Rate limit exceeded. */
+                /** @description Rate limit or spend limit exceeded. A spend-limit block refunds the hold; no charge applies. */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "error": "rate_limit_exceeded",
-                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
-                         *       "action": "Back off and retry after the Retry-After interval.",
-                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
-                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
-                         *     }
-                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -3089,7 +3237,7 @@ export interface paths {
         };
         /**
          * Transparent proxy with server-side key injection
-         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance. Spend limits apply: a wallet-level daily and per-transaction ceiling caps all spend on the wallet (api keys, OAuth connected apps, and Desk), and api-key callers also pass a tighter per-key window. Exceeding either window returns 429 and refunds the hold (no charge). Set wallet limits under Wallets > Limits, and per-key limits in the API Keys section of the web app.
          */
         put: {
             parameters: {
@@ -3181,21 +3329,12 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Rate limit exceeded. */
+                /** @description Rate limit or spend limit exceeded. A spend-limit block refunds the hold; no charge applies. */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "error": "rate_limit_exceeded",
-                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
-                         *       "action": "Back off and retry after the Retry-After interval.",
-                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
-                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
-                         *     }
-                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -3221,7 +3360,7 @@ export interface paths {
         };
         /**
          * Transparent proxy with server-side key injection
-         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance. Spend limits apply: a wallet-level daily and per-transaction ceiling caps all spend on the wallet (api keys, OAuth connected apps, and Desk), and api-key callers also pass a tighter per-key window. Exceeding either window returns 429 and refunds the hold (no charge). Set wallet limits under Wallets > Limits, and per-key limits in the API Keys section of the web app.
          */
         post: {
             parameters: {
@@ -3313,21 +3452,12 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Rate limit exceeded. */
+                /** @description Rate limit or spend limit exceeded. A spend-limit block refunds the hold; no charge applies. */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "error": "rate_limit_exceeded",
-                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
-                         *       "action": "Back off and retry after the Retry-After interval.",
-                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
-                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
-                         *     }
-                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -3353,7 +3483,7 @@ export interface paths {
         };
         /**
          * Transparent proxy with server-side key injection
-         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance. Spend limits apply: a wallet-level daily and per-transaction ceiling caps all spend on the wallet (api keys, OAuth connected apps, and Desk), and api-key callers also pass a tighter per-key window. Exceeding either window returns 429 and refunds the hold (no charge). Set wallet limits under Wallets > Limits, and per-key limits in the API Keys section of the web app.
          */
         delete: {
             parameters: {
@@ -3445,21 +3575,12 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Rate limit exceeded. */
+                /** @description Rate limit or spend limit exceeded. A spend-limit block refunds the hold; no charge applies. */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "error": "rate_limit_exceeded",
-                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
-                         *       "action": "Back off and retry after the Retry-After interval.",
-                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
-                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
-                         *     }
-                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -3487,7 +3608,7 @@ export interface paths {
         head?: never;
         /**
          * Transparent proxy with server-side key injection
-         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance.
+         * @description Forwards the request to the upstream service for {service}, injecting the seller credential server-side (keys never leave the gateway). The request and response bodies are the upstream API's. Billing is automatic: a credit reservation is taken, the upstream is called, then the reservation is confirmed (charge) or refunded (on failure). Every response carries a signed receipt header. Requires authentication and a positive credit balance. Spend limits apply: a wallet-level daily and per-transaction ceiling caps all spend on the wallet (api keys, OAuth connected apps, and Desk), and api-key callers also pass a tighter per-key window. Exceeding either window returns 429 and refunds the hold (no charge). Set wallet limits under Wallets > Limits, and per-key limits in the API Keys section of the web app.
          */
         patch: {
             parameters: {
@@ -3579,21 +3700,12 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description Rate limit exceeded. */
+                /** @description Rate limit or spend limit exceeded. A spend-limit block refunds the hold; no charge applies. */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "error": "rate_limit_exceeded",
-                         *       "message": "Too many requests. Slow down and retry after the indicated window.",
-                         *       "action": "Back off and retry after the Retry-After interval.",
-                         *       "docs": "https://gateway.proxygate.ai/docs#tag/errors",
-                         *       "trace_id": "7f3c2a1b-9d4e-4c6a-8b2f-1e0a5c7d9b3e"
-                         *     }
-                         */
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
@@ -4753,6 +4865,18 @@ export interface components {
         };
         /** @description Passthrough body. The shape is defined by the upstream API, not by Proxygate. */
         ProxyPassthroughBody: unknown;
+        /**
+         * @example {
+         *       "daily_limit_micro_usdc": 1000000,
+         *       "per_tx_limit_micro_usdc": 50000
+         *     }
+         */
+        WalletLimits: {
+            /** @description classification:financial */
+            daily_limit_micro_usdc: number | null;
+            /** @description classification:financial */
+            per_tx_limit_micro_usdc: number | null;
+        };
         /**
          * @example {
          *       "status": "healthy",

@@ -349,7 +349,7 @@ describe('wallet spend limits: getSpendLimits / setSpendLimits', () => {
   });
 
   function bearerClient(): ProxygateClient {
-    return new ProxygateClient({ gatewayUrl: testGatewayUrl, apiKey: 'pg_live_testkey1234567890' });
+    return new ProxygateClient({ gatewayUrl: testGatewayUrl, apiKey: 'pg_live_testkey1234567890' }); // gitleaks:allow -- fake fixture key, not a real secret
   }
 
   it('getSpendLimits GETs /v1/wallet/limits and returns the limits', async () => {
