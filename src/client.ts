@@ -27,9 +27,17 @@ import type {
   SetContactEmailOptions, SetContactEmailResponse,
   VerifyContactEmailOptions, VerifyContactEmailResponse,
   SetUsernameOptions, SetUsernameResponse,
+  WalletLimits,
 } from './types.js';
 
-export { ProxygateError } from './client/helpers.js';
+export {
+  ProxygateError,
+  SpendLimitError,
+  isSpendLimitError,
+  spendLimitErrorFromResponse,
+  SPEND_LIMIT_ERROR_CODES,
+} from './client/helpers.js';
+export type { SpendLimitReason } from './client/helpers.js';
 
 /**
  * Typed client for the Proxygate API marketplace.
@@ -201,6 +209,20 @@ export class ProxygateClient {
   async docs(listingId: string): Promise<ListingDocsResponse | null> { return apiMethods.docs(this._apiDeps, listingId); }
   async sellerProfile(wallet: string): Promise<SellerProfileResponse> { return apiMethods.sellerProfile(this._apiDeps, wallet); }
   async settlements(opts?: SettlementsQueryOptions): Promise<SettlementsResponse> { return apiMethods.settlements(this._apiDeps, opts); }
+
+  /**
+   * Read the spend limits of the wallet bound to the authenticated key (in
+   * micro-USDC; `null` = unset). Bearer-authed; requires the `wallet:limits`
+   * scope. A key without it gets a clear {@link ProxygateError} (`scope_required`).
+   */
+  async getSpendLimits(): Promise<WalletLimits> { return apiMethods.getSpendLimits(this._apiDeps); }
+
+  /**
+   * Set the spend limits of the wallet bound to the authenticated key. A `null`
+   * field clears that limit. Returns the updated limits. Bearer-authed; requires
+   * the `wallet:limits` scope (else a clear {@link ProxygateError}).
+   */
+  async setSpendLimits(limits: WalletLimits): Promise<WalletLimits> { return apiMethods.setSpendLimits(this._apiDeps, limits); }
 
   /** Get auth headers for the current auth mode. */
   private async _getAuthHeaders(): Promise<Record<string, string>> {

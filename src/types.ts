@@ -53,6 +53,7 @@ export type {
   VerifyContactEmailResponse,
   SetUsernameOptions,
   SetUsernameResponse,
+  WalletLimits,
 } from './types/api.js';
 
 export {

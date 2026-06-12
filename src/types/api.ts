@@ -521,3 +521,27 @@ export interface SetUsernameOptions {
 export interface SetUsernameResponse {
   success: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Wallet spend limits (GET/POST /v1/wallet/limits) — bearer-authed, scope
+// `wallet:limits`. The wallet bound to the key is the implied target, so the
+// SDK body carries only the limit fields (no wallet_id).
+//
+// SOURCE OF TRUTH is the api-types `WalletLimits` Zod schema
+// (`@proxygate/api-types` schemas/wallet/limits). It is defined LOCALLY here so
+// the SDK's public .d.ts stays self-contained and never references the private,
+// unpublished api-types package (same pattern as the email/username types
+// above). Keep the shape aligned with that schema; bump per SAFE-06 on change.
+// ---------------------------------------------------------------------------
+
+/**
+ * A wallet's stored spend limits, in micro-USDC (1 USDC = 1,000,000).
+ * `null` means the limit is unset (the gateway falls back to its env default).
+ * Both the read response and the set request/response use this shape.
+ */
+export interface WalletLimits {
+  /** Daily spend ceiling in micro-USDC, or `null` when unset. classification:financial */
+  daily_limit_micro_usdc: number | null;
+  /** Per-transaction spend ceiling in micro-USDC, or `null` when unset. classification:financial */
+  per_tx_limit_micro_usdc: number | null;
+}

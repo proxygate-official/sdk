@@ -32,6 +32,82 @@ export class ProxygateError extends Error {
 }
 
 // ---------------------------------------------------------------------------
+// Spend-limit error
+// ---------------------------------------------------------------------------
+
+/** Which spend window a call exceeded: the daily total or the per-call cap. */
+export type SpendLimitReason = 'daily' | 'per_tx';
+
+/** Gateway error codes that signal a spend-limit block (HTTP 429). */
+export const SPEND_LIMIT_ERROR_CODES = [
+  'daily_spend_limit_exceeded',
+  'per_tx_spend_limit_exceeded',
+] as const;
+
+/**
+ * Distinct error for a proxy call blocked by a spend limit (HTTP 429).
+ *
+ * The gateway enforces a daily and a per-transaction spend ceiling (wallet-level
+ * or api-key-level; same wire shape). When a billed call would exceed either, it
+ * responds 429 with `error: 'daily_spend_limit_exceeded'` or
+ * `'per_tx_spend_limit_exceeded'`. This subclass lets callers branch on a
+ * deliberate limit (which they can resolve by raising the cap) versus a generic
+ * gateway/upstream 429. (Additive, SAFE-06.)
+ *
+ * Note: `ProxygateClient.proxy()` returns the raw {@link Response} and does not
+ * throw, so for proxy calls use {@link spendLimitErrorFromResponse}. Endpoint
+ * methods that throw {@link ProxygateError} throw this subclass automatically.
+ */
+export class SpendLimitError extends ProxygateError {
+  /** Which window was exceeded: the daily total or the per-call cap. */
+  readonly reason: SpendLimitReason;
+
+  constructor(gatewayError: GatewayError, statusCode: number, raw?: unknown) {
+    super(gatewayError, statusCode, raw);
+    this.name = 'SpendLimitError';
+    this.reason = gatewayError.error === 'per_tx_spend_limit_exceeded' ? 'per_tx' : 'daily';
+  }
+}
+
+/** True when `err` is a {@link SpendLimitError}. */
+export function isSpendLimitError(err: unknown): err is SpendLimitError {
+  return err instanceof SpendLimitError;
+}
+
+/** True when an error code is one of the spend-limit codes. */
+function isSpendLimitCode(code: string): boolean {
+  return (SPEND_LIMIT_ERROR_CODES as readonly string[]).includes(code);
+}
+
+/**
+ * Inspect a proxy {@link Response} and return a {@link SpendLimitError} when the
+ * gateway blocked the call on a spend limit (HTTP 429 with a spend-limit code),
+ * or `null` otherwise. Consumes the response body, so only call this once and
+ * only when you are not going to read the body elsewhere.
+ *
+ * `ProxygateClient.proxy()` returns the raw Response rather than throwing, so
+ * callers (e.g. the CLI) use this to classify a 429 without re-implementing the
+ * code matching. (Additive, SAFE-06.)
+ */
+export async function spendLimitErrorFromResponse(
+  response: Response,
+): Promise<SpendLimitError | null> {
+  if (response.status !== 429) return null;
+  const body = await response.text().catch(() => '');
+  let raw: unknown;
+  try {
+    raw = JSON.parse(body);
+  } catch {
+    return null;
+  }
+  const gatewayError = raw as GatewayError;
+  if (typeof gatewayError?.error !== 'string' || !isSpendLimitCode(gatewayError.error)) {
+    return null;
+  }
+  return new SpendLimitError(gatewayError, response.status, raw);
+}
+
+// ---------------------------------------------------------------------------
 // Utility helpers
 // ---------------------------------------------------------------------------
 
@@ -142,6 +218,9 @@ async function parseErrorResponse(response: Response): Promise<ProxygateError> {
   } catch {
     raw = undefined;
     gatewayError = { error: 'unknown', message: body || `HTTP ${response.status}` };
+  }
+  if (response.status === 429 && typeof gatewayError.error === 'string' && isSpendLimitCode(gatewayError.error)) {
+    return new SpendLimitError(gatewayError, response.status, raw);
   }
   return new ProxygateError(gatewayError, response.status, raw);
 }

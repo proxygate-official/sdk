@@ -1,5 +1,13 @@
 // Client
-export { ProxygateClient, ProxygateError } from './client.js';
+export {
+  ProxygateClient,
+  ProxygateError,
+  SpendLimitError,
+  isSpendLimitError,
+  spendLimitErrorFromResponse,
+  SPEND_LIMIT_ERROR_CODES,
+} from './client.js';
+export type { SpendLimitReason } from './client.js';
 
 // Vault
 export { VaultClient, VAULT_CONSTANTS } from './vault.js';
@@ -118,4 +126,5 @@ export type {
   VerifyContactEmailResponse,
   SetUsernameOptions,
   SetUsernameResponse,
+  WalletLimits,
 } from './types.js';

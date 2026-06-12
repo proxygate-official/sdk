@@ -335,3 +335,96 @@ describe('Phase 51-08: backwards compatibility', () => {
     await expect(client.api('BadInput!')).rejects.toBeInstanceOf(ProxygateError);
   });
 });
+
+describe('wallet spend limits: getSpendLimits / setSpendLimits', () => {
+  let originalFetch: typeof globalThis.fetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  function bearerClient(): ProxygateClient {
+    return new ProxygateClient({ gatewayUrl: testGatewayUrl, apiKey: 'pg_live_testkey1234567890' });
+  }
+
+  it('getSpendLimits GETs /v1/wallet/limits and returns the limits', async () => {
+    const mockFetch = createMockFetch(new Map([
+      ['/v1/wallet/limits', { status: 200, body: { daily_limit_micro_usdc: 5_000_000, per_tx_limit_micro_usdc: 1_000_000 } }],
+    ]));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await bearerClient().getSpendLimits();
+
+    expect(result).toEqual({ daily_limit_micro_usdc: 5_000_000, per_tx_limit_micro_usdc: 1_000_000 });
+    const call = mockFetch.mock.calls.find((c: unknown[]) => (c[0] as string).includes('/v1/wallet/limits'));
+    expect(call).toBeTruthy();
+    expect((call![1] as RequestInit).method).toBe('GET');
+  });
+
+  it('getSpendLimits surfaces null (unset) limits unchanged', async () => {
+    const mockFetch = createMockFetch(new Map([
+      ['/v1/wallet/limits', { status: 200, body: { daily_limit_micro_usdc: null, per_tx_limit_micro_usdc: null } }],
+    ]));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await bearerClient().getSpendLimits();
+    expect(result.daily_limit_micro_usdc).toBeNull();
+    expect(result.per_tx_limit_micro_usdc).toBeNull();
+  });
+
+  it('setSpendLimits POSTs the limits body and returns the updated limits', async () => {
+    const mockFetch = createMockFetch(new Map([
+      ['/v1/wallet/limits', { status: 200, body: { daily_limit_micro_usdc: 2_000_000, per_tx_limit_micro_usdc: null } }],
+    ]));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await bearerClient().setSpendLimits({ daily_limit_micro_usdc: 2_000_000, per_tx_limit_micro_usdc: null });
+
+    expect(result).toEqual({ daily_limit_micro_usdc: 2_000_000, per_tx_limit_micro_usdc: null });
+    const call = mockFetch.mock.calls.find((c: unknown[]) => (c[0] as string).includes('/v1/wallet/limits'));
+    expect(call).toBeTruthy();
+    const init = call![1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ daily_limit_micro_usdc: 2_000_000, per_tx_limit_micro_usdc: null });
+  });
+
+  it('maps a 403 scope_required to a clear ProxygateError mentioning the wallet:limits scope', async () => {
+    const mockFetch = createMockFetch(new Map([
+      ['/v1/wallet/limits', { status: 403, body: { error: 'scope_required', message: 'API key missing required scope: wallet:limits' } }],
+    ]));
+    vi.stubGlobal('fetch', mockFetch);
+
+    try {
+      await bearerClient().getSpendLimits();
+      throw new Error('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ProxygateError);
+      const pge = err as ProxygateError;
+      expect(pge.code).toBe('scope_required');
+      expect(pge.statusCode).toBe(403);
+      expect(pge.message).toContain('wallet:limits');
+      expect(pge.action).toContain('wallet:limits');
+    }
+  });
+
+  it('does not rewrite a non-scope error', async () => {
+    const mockFetch = createMockFetch(new Map([
+      ['/v1/wallet/limits', { status: 500, body: { error: 'internal_error', message: 'boom' } }],
+    ]));
+    vi.stubGlobal('fetch', mockFetch);
+
+    try {
+      await bearerClient().setSpendLimits({ daily_limit_micro_usdc: 1, per_tx_limit_micro_usdc: 1 });
+      throw new Error('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ProxygateError);
+      expect((err as ProxygateError).code).toBe('internal_error');
+      expect((err as ProxygateError).message).toBe('boom');
+    }
+  });
+});

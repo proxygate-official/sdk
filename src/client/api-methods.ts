@@ -17,6 +17,7 @@ import type {
   SettlementsQueryOptions,
   RateOptions,
   SellerStrategy,
+  WalletLimits,
 } from '../types.js';
 
 /** Client internals needed by API methods. */
@@ -63,6 +64,53 @@ export function services(deps: ApiMethodDeps): Promise<ServicesResponse> {
 
 export function categories(deps: ApiMethodDeps): Promise<CategoriesResponse> {
   return deps.publicRequest<CategoriesResponse>('GET', '/v1/categories');
+}
+
+/**
+ * Rethrow a `scope_required` (403) gateway error with a clearer, actionable
+ * message for the wallet-limits scope, preserving the original code, status,
+ * docs, and trace id. Any other error passes through untouched. (Additive.)
+ */
+function clarifyScopeError(err: unknown): never {
+  if (err instanceof ProxygateError && err.code === 'scope_required') {
+    throw new ProxygateError(
+      {
+        error: err.code,
+        message: 'This API key is missing the `wallet:limits` scope required to read or change spend limits.',
+        action: 'Grant the `wallet:limits` scope to this key in the Proxygate web app, or create a new key with it.',
+        docs: err.docs,
+        trace_id: err.traceId,
+      },
+      err.statusCode,
+      err.raw,
+    );
+  }
+  throw err;
+}
+
+/**
+ * Read the spend limits of the wallet bound to the authenticated key.
+ * Bearer-authed; requires the `wallet:limits` scope (else a clear 403).
+ */
+export async function getSpendLimits(deps: ApiMethodDeps): Promise<WalletLimits> {
+  try {
+    return await deps.authenticatedRequest<WalletLimits>('GET', '/v1/wallet/limits');
+  } catch (err) {
+    return clarifyScopeError(err);
+  }
+}
+
+/**
+ * Set the spend limits of the wallet bound to the authenticated key. A `null`
+ * field clears that limit (the gateway falls back to its env default). Returns
+ * the updated limits. Bearer-authed; requires the `wallet:limits` scope.
+ */
+export async function setSpendLimits(deps: ApiMethodDeps, limits: WalletLimits): Promise<WalletLimits> {
+  try {
+    return await deps.authenticatedRequest<WalletLimits>('POST', '/v1/wallet/limits', { body: limits });
+  } catch (err) {
+    return clarifyScopeError(err);
+  }
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
