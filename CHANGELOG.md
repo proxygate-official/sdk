@@ -1,5 +1,18 @@
 # @proxygate/sdk
 
+## 0.13.0
+
+### Minor Changes
+
+- 4d1961c: BEHAVIOR: default RPC is now mainnet-beta. `DEFAULT_RPC_URL` changed from `https://api.devnet.solana.com` to `https://api.mainnet-beta.solana.com`, and `vault.deposit()`, `vault.withdraw()`, and the gasless `vault.topupX402()` send paths now all resolve their RPC from this constant. The escrow program id and USDC mint were already mainnet, so the devnet default was a mismatch. Pass `rpcUrl` explicitly to target devnet or testnet.
+- e737c8d: Surface spend-limit blocks distinctly. Adds `SpendLimitError` (a `ProxygateError` subclass carrying `reason: 'daily' | 'per_tx'`) thrown by endpoint methods on an HTTP 429 spend-limit response, plus `spendLimitErrorFromResponse(response)` to classify the raw `Response` returned by `client.proxy()`, an `isSpendLimitError` guard, the `SPEND_LIMIT_ERROR_CODES` constant, and the `SpendLimitReason` type. The `daily_spend_limit_exceeded` and `per_tx_spend_limit_exceeded` gateway codes are added to `GatewayErrorCode`. Additive only.
+- e737c8d: Read and change wallet spend limits. Adds `client.getSpendLimits()` and `client.setSpendLimits({ daily_limit_micro_usdc, per_tx_limit_micro_usdc })` against `GET`/`POST /v1/wallet/limits` (bearer auth, `wallet:limits` scope; a `null` field clears that limit), plus the `WalletLimits` type. A missing-scope 403 is rethrown as a clear `ProxygateError` naming the `wallet:limits` scope. Additive only.
+- 4d1961c: `vault.topupX402()`: top up the prepaid balance via the x402 rail. Preflights the 402 challenge (fails fast before funds move when the rail is disabled), then either follows the GASLESS path — the server-provided, platform-fee-paid depositTransaction is whitelist-validated instruction by instruction (fee payer, fee ceiling vs extra.feeMicroUsdc, exact deposit amount, buyer accounts) before the buyer co-signs, so buyers never need SOL — or builds and sends the escrow deposit locally (init_if_needed creates the vault PDA on a first-ever top-up). Confirms at POST /v1/x402/topup/confirm. ProxygateError now carries the parsed error body on `raw`.
+
+### Patch Changes
+
+- d3cd7e5: `ApiListingDetail`: model 8 optional `/v1/apis` fields that the gateway already returns but the SDK type omitted, so consumers can read them type-safely. Buyer-facing pricing (`buyer_price_per_request_usdc`, `buyer_price_per_input_token_usdc`, `buyer_price_per_output_token_usdc`, `platform_fee_pct`) plus seller/listing branding (`seller_organization`, `seller_avatar_url`, `provider_logo_url`, `is_partner`). Nullability mirrors the `@proxygate/api-types` CatalogListing schema; all optional for backward compat with older gateways. Additive, no behavior change.
+
 ## 0.12.0
 
 ### Minor Changes
