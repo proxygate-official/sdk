@@ -4478,6 +4478,12 @@ export interface components {
                     request_schema?: {
                         [key: string]: unknown;
                     };
+                    body_overrides?: {
+                        [key: string]: unknown;
+                    };
+                    query_overrides?: {
+                        [key: string]: string;
+                    };
                 }[] | null;
                 shield_enabled: boolean | null;
                 endpoint_prices: {
@@ -4572,6 +4578,12 @@ export interface components {
                 description?: string;
                 request_schema?: {
                     [key: string]: unknown;
+                };
+                body_overrides?: {
+                    [key: string]: unknown;
+                };
+                query_overrides?: {
+                    [key: string]: string;
                 };
             }[] | null;
             shield_enabled: boolean | null;
