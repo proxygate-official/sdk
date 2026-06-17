@@ -4190,6 +4190,7 @@ export interface components {
                 query_overrides?: {
                     [key: string]: string;
                 };
+                label?: string;
             }[];
             endpoint_prices: {
                 path: string;
@@ -4484,6 +4485,10 @@ export interface components {
                     query_overrides?: {
                         [key: string]: string;
                     };
+                    /** @description Friendly variant name shown to buyers, e.g. "News + sentiment" or "1 month". Optional; set when this endpoint is a priced alias of another upstream path. */
+                    label?: string;
+                    /** @description Real upstream path this endpoint forwards to. Lets a distinct buyer-facing path alias a shared upstream path (with its own forced params + price). Defaults to the endpoint path when absent. */
+                    upstream_path?: string;
                 }[] | null;
                 shield_enabled: boolean | null;
                 endpoint_prices: {
@@ -4585,6 +4590,10 @@ export interface components {
                 query_overrides?: {
                     [key: string]: string;
                 };
+                /** @description Friendly variant name shown to buyers, e.g. "News + sentiment" or "1 month". Optional; set when this endpoint is a priced alias of another upstream path. */
+                label?: string;
+                /** @description Real upstream path this endpoint forwards to. Lets a distinct buyer-facing path alias a shared upstream path (with its own forced params + price). Defaults to the endpoint path when absent. */
+                upstream_path?: string;
             }[] | null;
             shield_enabled: boolean | null;
             endpoint_prices: {

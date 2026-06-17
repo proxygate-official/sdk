@@ -91,6 +91,8 @@ export interface EndpointSpec {
   body_overrides?: Record<string, unknown>;
   /** Seller-defined query param overrides. Merged into upstream URL — buyer cannot override these values. */
   query_overrides?: Record<string, string>;
+  /** Friendly variant name surfaced to buyers (e.g. "News + sentiment", "1 month"). Distinguishes priced variant endpoints from one another. */
+  label?: string;
 }
 
 /** Single service entry in pricing response (flat -- no nested listings). */
