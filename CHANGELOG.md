@@ -1,5 +1,15 @@
 # @proxygate/sdk
 
+## 0.14.0
+
+### Minor Changes
+
+- 84d2c1b: feat(sdk,cli): surface the priced-variant `label` on EndpointSpec and in `proxygate apis`. The seller-internal `upstream_path` alias is intentionally kept out of buyer-facing SDK types.
+
+### Patch Changes
+
+- 5f9a95d: chore(deps): bump all dependencies to latest (graphql 16->17, TypeScript 5->6, eslint 10, next 16.2.9), adapt graphql-parser to graphql-js v17 default-value API, and pin transitive security advisories (ws, postcss, js-yaml) in both override sets.
+
 ## 0.13.0
 
 ### Minor Changes
