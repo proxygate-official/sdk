@@ -87,9 +87,9 @@ export interface EndpointSpec {
   path: string;
   description?: string;
   request_schema?: JsonSchema;
-  /** Seller-defined body field overrides. Merged on top of buyer's request body — buyer cannot override these values. */
+  /** Seller-defined body field overrides. Merged on top of buyer's request body — buyer cannot override these values. Per-endpoint: they apply only to this endpoint and do not cascade to or from other endpoints (e.g. priced variants of the same upstream). */
   body_overrides?: Record<string, unknown>;
-  /** Seller-defined query param overrides. Merged into upstream URL — buyer cannot override these values. */
+  /** Seller-defined query param overrides. Merged into upstream URL — buyer cannot override these values. Per-endpoint: they apply only to this endpoint and do not cascade to or from other endpoints (e.g. priced variants of the same upstream). */
   query_overrides?: Record<string, string>;
   /** Friendly variant name surfaced to buyers (e.g. "News + sentiment", "1 month"). Distinguishes priced variant endpoints from one another. */
   label?: string;
