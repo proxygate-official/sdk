@@ -1,5 +1,11 @@
 # @proxygate/sdk
 
+## 0.14.2
+
+### Patch Changes
+
+- ae70e9e: Raise the listing documentation upload limit from 5MB to 15MB to support large multi-endpoint OpenAPI specs (e.g. BlockDB). `describe_endpoint` (and the public docs route the SDK/CLI read) now also synthesize an OpenAPI description from a listing's own `endpoints[].request_schema` when no uploaded docs row exists, so schema introspection works for sync-ingested listings.
+
 ## 0.14.1
 
 ### Patch Changes
